@@ -10,7 +10,8 @@ import { ConfirmSubmit } from '@/components/ConfirmSubmit';
 import { Icon } from '@/components/icons';
 import { Alert } from '@/components/Alert';
 import { EditLinkForm } from '@/components/links/EditLinkForm';
-import { QrForm } from '@/components/links/QrForm';
+import { LinkSubnav } from '@/components/links/LinkSubnav';
+import { QrPanel } from '@/components/links/QrPanel';
 import { TimeSeries } from '@/components/charts/TimeSeries';
 import { BarList } from '@/components/charts/BarList';
 import { deleteLinkAction } from '@/app/actions/links';
@@ -31,10 +32,9 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ dom
     if (e instanceof ApiError && e.status === 404) notFound();
     throw e;
   }
-  const [analytics, me, qrs] = await Promise.all([
+  const [analytics, me] = await Promise.all([
     api.analytics(domainId, code),
     api.me(),
-    api.listQR(domainId, code).catch(() => []),
   ]);
   const role = me.workspaces[0]?.role ?? 'viewer';
   const canWrite = ROLE_RANK[role] >= ROLE_RANK.member;
@@ -58,11 +58,14 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ dom
         </div>
         <div className="cluster">
           <CopyButton value={link.shortUrl} label="Copy short link" />
+          <a className="btn secondary" href={`#qr-code`}><Icon.Qr /> QR code</a>
           <a className="btn secondary" href={link.shortUrl} target="_blank" rel="noopener noreferrer"><Icon.External />Open</a>
         </div>
       </div>
 
-      <section className="card" aria-labelledby="det-h">
+      <LinkSubnav />
+
+      <section className="card" id="link-details" aria-labelledby="det-h">
         <h2 id="det-h">Details</h2>
         <dl className="grid cols-2" style={{ marginTop: 12 }}>
           <div><dt className="muted">Short link</dt><dd className="mono">{link.shortUrl}</dd></div>
@@ -74,7 +77,9 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ dom
         </dl>
       </section>
 
-      <section className="stack" aria-labelledby="an-h">
+      <QrPanel link={link} />
+
+      <section className="stack" id="link-analytics" aria-labelledby="an-h">
         <h2 id="an-h">Analytics</h2>
         {!analytics.configured ? (
           <Alert variant="info" title="Aggregated analytics are not available in this environment">
@@ -106,32 +111,10 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ dom
       </section>
 
       {canWrite ? (
-        <div className="grid cols-2">
-          <section className="card" aria-labelledby="edit-h">
-            <h2 id="edit-h" style={{ marginBottom: 12 }}>Edit link</h2>
-            <EditLinkForm link={link} />
-          </section>
-          <section className="card" aria-labelledby="qr-h">
-            <h2 id="qr-h" style={{ marginBottom: 12 }}>QR code</h2>
-            <p className="muted" style={{ marginBottom: 12 }}>Queue a QR code for this link. A worker renders it and stores it for download.</p>
-            {qrs.length > 0 ? (
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {qrs.map((q) => (
-                  <li key={q.id} className="spread" style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px' }}>
-                    <span className="cluster">
-                      <span className="mono">{q.format.toUpperCase()}</span>
-                      <Badge tone={q.status === 'ready' ? 'ok' : 'warn'}>{q.status}</Badge>
-                    </span>
-                    {q.status === 'ready' && q.url ? (
-                      <a className="btn secondary small" href={q.url} target="_blank" rel="noopener noreferrer"><Icon.External />Download</a>
-                    ) : <span className="muted">pending worker</span>}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <QrForm link={link} />
-          </section>
-        </div>
+        <section className="card" aria-labelledby="edit-h">
+          <h2 id="edit-h" style={{ marginBottom: 12 }}>Edit link</h2>
+          <EditLinkForm link={link} />
+        </section>
       ) : null}
 
       {canWrite ? (
