@@ -8,7 +8,7 @@ Linkspire is an internet-scale, privacy-by-design link platform targeting **100M
 average, **50k req/s** burst, redirect **p99 < 30 ms** at origin, and **99.99%** redirect
 availability with **RPO = 0** for committed link data.
 
-This repository is delivered in phases. **Phases 1–6** are in-tree:
+This repository is delivered in phases. **All seven phases** are in-tree:
 
 - Architecture, capacity, ADRs, STRIDE — `docs/architecture/01`–`04`
 - Data layer — `db/migrations`, `db/clickhouse`, `docs/architecture/05-data-layer.md`
@@ -16,8 +16,7 @@ This repository is delivered in phases. **Phases 1–6** are in-tree:
 - Management API + workers — `services/api`, `services/workers`, `docs/architecture/07-management-api.md`
 - Dashboard — `web`, `docs/architecture/08-dashboard.md` (Next.js, WCAG 2.2 AA)
 - Infrastructure — `deploy`, `test`, `.github/workflows`, `docs/architecture/09-infrastructure.md` (Docker, Helm, Terraform, k6, CI/CD)
-
-Remaining: compliance pack (Phase 7).
+- Compliance and runbooks — `docs/compliance`, `docs/runbooks` (RoPA, DPA, privacy policy, retention schedule, DPIA, incident runbooks)
 
 ## Phase 1 deliverables
 
@@ -35,8 +34,8 @@ linkspire/
 ├── README.md
 ├── docs/
 │   ├── architecture/            # Phase 1 (this phase)
-│   ├── compliance/              # Phase 7: RoPA, DPA, privacy policy, retention schedule
-│   └── runbooks/                # Phase 7: cache failure, DB failover, cert outage, mass-phishing, DSAR
+│   ├── compliance/              # Phase 7: RoPA, DPA, privacy policy, retention schedule — DONE
+│   └── runbooks/                # Phase 7: cache failure, DB failover, cert outage, mass-phishing, DSAR — DONE
 ├── services/
 │   ├── redirect/                # Phase 3: Go hot-path service (L1 LRU, Redis, singleflight, Bloom)
 │   ├── api/                     # Phase 4: Go management API (/v1, OIDC, RBAC, idempotency)
