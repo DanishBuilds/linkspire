@@ -1,0 +1,225 @@
+# services/api/openapi.yaml
+openapi: 3.1.0
+info:
+  title: Linkspire Management API
+  version: "1.0.0"
+  description: Versioned REST API (`/v1`) for the privacy-first URL shortener.
+servers:
+  - url: https://api.linkspire.io
+paths:
+  /v1/auth/register:
+    post:
+      summary: Register with email/password; creates a home workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+        "409":
+          $ref: "#/components/responses/Problem"
+  /v1/auth/login:
+    post:
+      summary: Login (Argon2id + optional TOTP)
+      responses:
+        "200":
+          description: JWT issued
+  /v1/links:
+    get:
+      summary: List links (workspace-scoped)
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Cursor page
+    post:
+      summary: Create a short link (Idempotency-Key supported)
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema: {type: string}
+        - in: header
+          name: X-Workspace-Id
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLink"
+      responses:
+        "201":
+          description: Created
+        "422":
+          $ref: "#/components/responses/Problem"
+  /v1/links/bulk:
+    post:
+      summary: Bulk create (1–100 items)
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Per-item results
+  /v1/links/{domainId}/{code}:
+    get:
+      security: [{bearerAuth: []}]
+      parameters:
+        - in: path
+          name: domainId
+          required: true
+          schema: {type: integer}
+        - in: path
+          name: code
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Link
+    patch:
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Updated
+    delete:
+      security: [{bearerAuth: []}]
+      responses:
+        "204":
+          description: Soft-deleted
+  /v1/links/{domainId}/{code}/qr:
+    post:
+      summary: Queue QR generation (PNG/SVG)
+      security: [{bearerAuth: []}]
+      responses:
+        "202":
+          description: Queued
+  /v1/domains:
+    get:
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Domain list
+    post:
+      summary: Add a custom domain (returns CNAME + TXT)
+      security: [{bearerAuth: []}]
+      responses:
+        "201":
+          description: Pending verification
+  /v1/api-keys:
+    get:
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Keys (hashes never returned)
+    post:
+      summary: Create a scoped API key (plaintext shown once)
+      security: [{bearerAuth: []}]
+      responses:
+        "201":
+          description: Created
+  /v1/webhooks:
+    get:
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Endpoints
+    post:
+      summary: Register https webhook (link.created, link.flagged, domain.verified)
+      security: [{bearerAuth: []}]
+      responses:
+        "201":
+          description: Created
+  /v1/analytics/links/{domainId}/{code}:
+    get:
+      summary: Privacy-safe aggregates (no IP/UA)
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Daily rollups
+  /v1/privacy/requests:
+    get:
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: DSAR list
+    post:
+      summary: File a DSAR (access/rectification/erasure/restriction/objection/do_not_sell)
+      security: [{bearerAuth: []}]
+      responses:
+        "202":
+          description: Accepted
+  /v1/privacy/do-not-sell:
+    post:
+      summary: CCPA/CPRA Do Not Sell or Share
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Recorded
+  /v1/abuse/reports:
+    post:
+      summary: Public abuse report (enters admin review queue)
+      responses:
+        "202":
+          description: Queued
+  /internal/tls/ask:
+    get:
+      summary: On-demand TLS ask endpoint (verified+active hosts only)
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: {type: string}
+        - in: header
+          name: X-Ask-Token
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Authorized
+        "404":
+          description: Unauthorized host
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: JWT from /v1/auth/login or an lk_live_ API key
+  schemas:
+    CreateLink:
+      type: object
+      required: [destination]
+      properties:
+        destination: {type: string, format: uri}
+        domain_id: {type: integer, format: int64}
+        alias: {type: string, minLength: 3, maxLength: 64}
+        redirect_type: {type: integer, enum: [301, 302, 307, 308], default: 302}
+        password: {type: string}
+        expires_at: {type: string, format: date-time}
+        click_limit: {type: integer, format: int64}
+        title: {type: string}
+        description: {type: string}
+        image: {type: string, format: uri}
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string, minLength: 10}
+        workspace: {type: string}
+        home_region: {type: string, enum: [us, eu]}
+    Problem:
+      type: object
+      properties:
+        type: {type: string, format: uri}
+        title: {type: string}
+        status: {type: integer}
+        detail: {type: string}
+        instance: {type: string}
+  responses:
+    Problem:
+      description: RFC 9457 problem details
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

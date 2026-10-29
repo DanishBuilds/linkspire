@@ -8,9 +8,14 @@ Linkspire is an internet-scale, privacy-by-design link platform targeting **100M
 average, **50k req/s** burst, redirect **p99 < 30 ms** at origin, and **99.99%** redirect
 availability with **RPO = 0** for committed link data.
 
-This repository is delivered in phases. **Phase 1 (Architecture)** is complete in `docs/architecture/`.
-Subsequent phases (data layer, redirect service, management API/workers, dashboard, infra, compliance)
-build on these decisions.
+This repository is delivered in phases. **Phases 1–4** are in-tree:
+
+- Architecture, capacity, ADRs, STRIDE — `docs/architecture/01`–`04`
+- Data layer — `db/migrations`, `db/clickhouse`, `docs/architecture/05-data-layer.md`
+- Redirect service — `services/redirect`, `docs/architecture/06-redirect-service.md`
+- Management API + workers — `services/api`, `services/workers`, `docs/architecture/07-management-api.md`
+
+Remaining: dashboard (Phase 5), infra (Phase 6), compliance pack (Phase 7).
 
 ## Phase 1 deliverables
 

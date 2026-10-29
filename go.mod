@@ -11,11 +11,13 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/segmentio/kafka-go v0.4.47
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 	golang.org/x/crypto v0.57.0
+	golang.org/x/net v0.59.0
 	golang.org/x/sync v0.23.0
 )
 
@@ -42,7 +44,6 @@ require (
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
