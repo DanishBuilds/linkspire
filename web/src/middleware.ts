@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const COOKIE = process.env.SESSION_COOKIE_NAME ?? 'linkspire_session';
-const PROTECTED = ['/dashboard', '/links', '/domains', '/api-keys', '/webhooks', '/settings'];
+const PROTECTED = ['/dashboard', '/links', '/domains', '/api-keys', '/webhooks', '/settings', '/admin'];
 const AUTH_PAGES = ['/login', '/register'];
 
 function csp(nonce: string): string {

@@ -37,6 +37,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <NavLink href="/webhooks"><Icon.Webhook className="ico" />Webhooks</NavLink>
             <div className="nav-section" role="presentation">Account</div>
             <NavLink href="/settings"><Icon.Settings className="ico" />Settings</NavLink>
+            {me.isStaff ? (
+              <>
+                <div className="nav-section" role="presentation">Admin</div>
+                <NavLink href="/admin/abuse"><Icon.Shield className="ico" />Abuse review</NavLink>
+              </>
+            ) : null}
           </nav>
           <div className="sidebar-foot" aria-label="Product information">
             <Link href="/features">Features</Link>

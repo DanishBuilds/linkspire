@@ -2,7 +2,7 @@
   "name": "linkspire-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Linkspire dashboard — privacy-first URL shortener control plane (Phase 5)",
+  "description": "Linkspire dashboard \u2014 privacy-first URL shortener control plane (Phase 5)",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -15,7 +15,8 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "qrcode": "1.5.4",
-    "zod": "3.24.1"
+    "zod": "3.24.1",
+    "@simplewebauthn/browser": "13.1.0"
   },
   "devDependencies": {
     "@types/node": "22.10.7",

@@ -7,7 +7,7 @@ import { env } from './env';
 import { getToken, getWorkspaceId } from './session';
 import type {
   Me, Membership, Link, DomainRecord, NewDomainInstructions, ApiKey, Webhook,
-  DsarRequest, AnalyticsResult, AnalyticsRow, Role, TotpSetup,
+  DsarRequest, AnalyticsResult, AnalyticsRow, Role, TotpSetup, AbuseReport, QrAsset, Passkey,
 } from './types';
 
 type R = Record<string, any>;
@@ -186,6 +186,7 @@ export async function me(): Promise<Me> {
     mfaEnabled: asBool(r.mfa_enabled),
     gpcOptOut: asBool(r.gpc_optout),
     homeRegion: asStr(r.home_region),
+    isStaff: asBool(r.is_staff),
     workspaces: Array.isArray(r.workspaces) ? r.workspaces.map(normMembership) : [],
   };
 }
@@ -352,4 +353,58 @@ export async function doNotSell(): Promise<void> {
 /* ---------- public abuse report (no auth) ---------- */
 export async function reportAbuse(shortUrl: string, reason: string): Promise<void> {
   await request('/v1/abuse/reports', { method: 'POST', auth: false, body: { short_url: shortUrl, reason } });
+}
+
+/* ---------- QR assets ---------- */
+export async function listQR(domainId: number, code: string): Promise<QrAsset[]> {
+  const r = await request(`/v1/links/${domainId}/${encodeURIComponent(code)}/qr`);
+  return listOf(r).map((o: R) => ({
+    id: asNum(pick(o, 'id')),
+    format: asStr(pick(o, 'format')),
+    ecLevel: asStr(pick(o, 'ec_level')),
+    size: asNum(pick(o, 'size')),
+    status: asStr(pick(o, 'status')),
+    url: asStr(pick(o, 'url')),
+    createdAt: asStr(pick(o, 'created_at')),
+  }));
+}
+
+/* ---------- admin abuse queue ---------- */
+export async function listAbuse(status?: string): Promise<AbuseReport[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const r = await request(`/v1/admin/abuse${qs}`);
+  return listOf(r).map((o: R) => ({
+    id: asNum(pick(o, 'id')),
+    shortUrl: asStr(pick(o, 'short_url')),
+    reason: asStr(pick(o, 'reason')),
+    status: asStr(pick(o, 'status')),
+    reporterEmail: asStrOrNull(pick(o, 'reporter_email')),
+    createdAt: asStr(pick(o, 'created_at')),
+    resolvedAt: asStrOrNull(pick(o, 'resolved_at')),
+  }));
+}
+export async function resolveAbuse(id: number, status: string): Promise<void> {
+  await request(`/v1/admin/abuse/${id}/resolve`, { method: 'POST', body: { status } });
+}
+
+/* ---------- webauthn passthrough (raw ceremony objects) ---------- */
+export async function waRegisterBegin(): Promise<any> {
+  return request('/v1/auth/webauthn/register/begin', { method: 'POST' });
+}
+export async function waRegisterFinish(credential: unknown, label: string): Promise<any> {
+  return request(`/v1/auth/webauthn/register/finish?label=${encodeURIComponent(label)}`, { method: 'POST', body: credential });
+}
+export async function waLoginBegin(email: string): Promise<any> {
+  return request('/v1/auth/webauthn/login/begin', { method: 'POST', auth: false, body: { email } });
+}
+export async function waLoginFinish(credential: unknown): Promise<{ token: string }> {
+  const r = await request('/v1/auth/webauthn/login/finish', { method: 'POST', auth: false, body: credential });
+  return { token: asStr(r.token) };
+}
+export async function waList(): Promise<Passkey[]> {
+  const r = await request('/v1/auth/webauthn/credentials');
+  return listOf(r).map((o: R) => ({ id: asNum(pick(o, 'id')), label: asStrOrNull(pick(o, 'label')) }));
+}
+export async function waDelete(id: number): Promise<void> {
+  await request(`/v1/auth/webauthn/credentials/${id}`, { method: 'DELETE' });
 }

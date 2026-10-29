@@ -21,6 +21,7 @@ export interface Me {
   mfaEnabled: boolean;
   gpcOptOut: boolean;
   homeRegion: string;
+  isStaff: boolean;
   workspaces: Membership[];
 }
 
@@ -119,3 +120,29 @@ export interface TotpSetup {
   secret: string;
   otpauthUrl: string;
 }
+
+export interface AbuseReport {
+  id: number;
+  shortUrl: string;
+  reason: string;
+  status: string;
+  reporterEmail: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface QrAsset {
+  id: number;
+  format: string;
+  ecLevel: string;
+  size: number;
+  status: string;
+  url: string;
+  createdAt: string;
+}
+
+export interface Passkey {
+  id: number;
+  label: string | null;
+}
+

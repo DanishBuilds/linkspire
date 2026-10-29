@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { PasskeyLogin } from '@/components/auth/PasskeyLogin';
 
 export const metadata: Metadata = { title: 'Sign in' };
 
@@ -13,6 +14,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <h1 style={{ marginTop: 18, marginBottom: 4 }}>Sign in</h1>
       <p className="muted" style={{ marginBottom: 20 }}>Access your link workspace.</p>
       <LoginForm next={next} />
+      <div style={{ marginTop: 14 }}>
+        <a className="btn secondary" href="/auth/sso" style={{ width: '100%' }}>Continue with single sign-on</a>
+      </div>
+      <PasskeyLogin next={next} />
       <p className="muted" style={{ marginTop: 18 }}>
         No account? <Link href="/register">Create one</Link>
       </p>
