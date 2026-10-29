@@ -8,14 +8,15 @@ Linkspire is an internet-scale, privacy-by-design link platform targeting **100M
 average, **50k req/s** burst, redirect **p99 < 30 ms** at origin, and **99.99%** redirect
 availability with **RPO = 0** for committed link data.
 
-This repository is delivered in phases. **Phases 1–4** are in-tree:
+This repository is delivered in phases. **Phases 1–5** are in-tree:
 
 - Architecture, capacity, ADRs, STRIDE — `docs/architecture/01`–`04`
 - Data layer — `db/migrations`, `db/clickhouse`, `docs/architecture/05-data-layer.md`
 - Redirect service — `services/redirect`, `docs/architecture/06-redirect-service.md`
 - Management API + workers — `services/api`, `services/workers`, `docs/architecture/07-management-api.md`
+- Dashboard — `web`, `docs/architecture/08-dashboard.md` (Next.js, WCAG 2.2 AA)
 
-Remaining: dashboard (Phase 5), infra (Phase 6), compliance pack (Phase 7).
+Remaining: infra (Phase 6), compliance pack (Phase 7).
 
 ## Phase 1 deliverables
 
@@ -44,7 +45,7 @@ linkspire/
 ├── db/
 │   ├── migrations/              # golang-migrate SQL (CockroachDB)
 │   └── clickhouse/              # ClickHouse DDL + TTLs
-├── web/                         # Phase 5: dashboard (Next.js, WCAG 2.2 AA)
+├── web/                         # Phase 5: dashboard (Next.js, WCAG 2.2 AA) — DONE
 ├── deploy/
 │   ├── docker/                  # Phase 6: distroless, non-root Dockerfiles
 │   ├── helm/                    # Phase 6: charts + HPA + PodDisruptionBudgets

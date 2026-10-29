@@ -9,3 +9,6 @@ logs_*.txt
 tmp-e2e/
 tmpdebug/
 
+.next/
+web/.next/
+.idea/
