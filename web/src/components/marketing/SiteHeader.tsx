@@ -1,19 +1,19 @@
 import Link from 'next/link';
 import { getToken } from '@/lib/session';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
-// Public marketing header. Server component: shows a Dashboard link when the
-// visitor already has a session, and a zero-JS <details> menu on small screens.
+const navLinks = (
+  <>
+    <Link href="/features">Features</Link>
+    <Link href="/privacy">Privacy</Link>
+    <Link href="/analytics">Analytics</Link>
+    <Link href="/developers">Developers</Link>
+  </>
+);
+
 export async function SiteHeader() {
   const loggedIn = Boolean(await getToken());
 
-  const links = (
-    <>
-      <a href="#features">Features</a>
-      <a href="#privacy">Privacy</a>
-      <a href="#analytics">Analytics</a>
-      <a href="#developers">Developers</a>
-    </>
-  );
   const actions = loggedIn ? (
     <Link href="/dashboard" className="btn small">Go to dashboard</Link>
   ) : (
@@ -29,8 +29,11 @@ export async function SiteHeader() {
         <Link href="/" className="brand" aria-label="Linkspire home">
           <span className="brand-mark" aria-hidden="true" />Linkspire
         </Link>
-        <nav className="mkt-nav" aria-label="Primary">{links}</nav>
-        <div className="mkt-actions">{actions}</div>
+        <nav className="mkt-nav" aria-label="Primary">{navLinks}</nav>
+        <div className="mkt-actions">
+          <ThemeToggle />
+          {actions}
+        </div>
 
         <details className="mkt-menu">
           <summary className="btn secondary small" aria-label="Open menu">
@@ -40,8 +43,11 @@ export async function SiteHeader() {
             Menu
           </summary>
           <div className="mkt-menu-panel">
-            <nav aria-label="Mobile navigation">{links}</nav>
-            <div className="mkt-menu-actions">{actions}</div>
+            <nav aria-label="Mobile navigation">{navLinks}</nav>
+            <div className="mkt-menu-actions">
+              <ThemeToggle />
+              {actions}
+            </div>
           </div>
         </details>
       </div>

@@ -6,8 +6,8 @@
 :root {
   color-scheme: light dark;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
   /* Light palette (default). Text/background pairs verified >= 4.5:1. */
   --bg: #f6f7f9;
@@ -90,7 +90,12 @@
   }
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0d1117; --surface: #161b22; --surface-2: #1f2630;
   --border: #30363d; --border-strong: #4b545f;
   --text: #e8edf2; --text-muted: #aeb9c4; --text-faint: #8b97a3;
@@ -113,10 +118,19 @@ body {
   color: var(--text);
   line-height: 1.55;
   font-size: 16px;
+  font-weight: 400;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-height: 100dvh;
 }
-h1, h2, h3, h4 { line-height: 1.2; font-weight: 650; }
+h1, h2, h3, h4 {
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-feature-settings: "kern" 1, "liga" 1, "ss01" 1;
+}
 h1 { font-size: 1.6rem; }
 h2 { font-size: 1.25rem; }
 h3 { font-size: 1.05rem; }
@@ -177,6 +191,24 @@ code, pre, kbd, samp { font-family: var(--font-mono); font-size: 0.9em; }
   box-shadow: var(--shadow); padding: 28px;
 }
 .auth-card .brand { margin-bottom: 18px; }
+.auth-wrap { position: relative; }
+.auth-theme { position: absolute; top: 16px; right: 16px; z-index: 2; }
+
+.theme-toggle { gap: 6px; }
+.theme-toggle-label { font-size: 0.82rem; font-weight: 600; }
+@media (max-width: 520px) {
+  .theme-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+}
+
+.sidebar-foot {
+  margin-top: auto; padding: 14px 8px 4px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;
+}
+.sidebar-foot a {
+  color: var(--text-muted); text-decoration: none; padding: 6px 8px; border-radius: var(--radius);
+  min-height: 36px; display: flex; align-items: center;
+}
+.sidebar-foot a:hover { color: var(--text); background: var(--surface-2); }
 
 /* ---------- layout: app shell ---------- */
 .shell { display: grid; grid-template-columns: 248px 1fr; min-height: 100dvh; }
@@ -185,7 +217,7 @@ code, pre, kbd, samp { font-family: var(--font-mono); font-size: 0.9em; }
   padding: 18px 14px; display: flex; flex-direction: column; gap: 6px;
   position: sticky; top: 0; height: 100dvh; overflow-y: auto;
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 1.1rem; color: var(--text); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.03em; color: var(--text); }
 .brand-mark {
   width: 28px; height: 28px; border-radius: 7px;
   background: linear-gradient(135deg, var(--c1), var(--c4)); flex: none;
@@ -390,7 +422,7 @@ table.data tbody tr:last-child td { border-bottom: none; }
 
 /* generic section */
 .mkt-section { max-width: var(--mkt-maxw); margin: 0 auto; padding: 72px 20px; }
-.mkt-section h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); letter-spacing: -0.02em; }
+.mkt-section h2 { font-size: clamp(1.5rem, 3.5vw, 2.2rem); letter-spacing: -0.035em; font-weight: 800; }
 .mkt-section .lead { color: var(--text-muted); font-size: 1.05rem; max-width: 60ch; margin-top: 10px; }
 .section-head { text-align: center; max-width: 64ch; margin: 0 auto 40px; }
 .section-head .lead { margin-left: auto; margin-right: auto; }
@@ -413,8 +445,8 @@ table.data tbody tr:last-child td { border-bottom: none; }
   font-size: 0.82rem; font-weight: 600;
 }
 .hero-title {
-  font-size: clamp(2.1rem, 5.4vw, 3.4rem); line-height: 1.05; letter-spacing: -0.03em;
-  margin-top: 18px; max-width: 16ch;
+  font-size: clamp(2.1rem, 5.4vw, 3.4rem); line-height: 1.05; letter-spacing: -0.045em;
+  font-weight: 800; margin-top: 18px; max-width: 16ch;
 }
 .hero-title .grad {
   background: linear-gradient(100deg, var(--c1), var(--c4)); -webkit-background-clip: text;
@@ -436,7 +468,7 @@ table.data tbody tr:last-child td { border-bottom: none; }
   display: flex; align-items: center; gap: 10px; justify-content: space-between;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px;
 }
-.preview .link-row .code { font-family: var(--font-mono); font-weight: 600; }
+.preview .link-row .code { font-family: var(--font-mono); font-weight: 600; letter-spacing: -0.02em; }
 .preview .link-row .dest { color: var(--text-muted); font-size: 0.85rem; }
 .preview .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .preview .mini-stats .s { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
@@ -513,3 +545,20 @@ table.data tbody tr:last-child td { border-bottom: none; }
   .mkt-menu { display: block; }
   .mkt-actions { display: none; }
 }
+
+/* marketing detail pages (/features, /privacy, …) */
+.mkt-doc { max-width: var(--mkt-maxw); margin: 0 auto; padding: 40px 20px 64px; }
+.mkt-doc-back { margin-bottom: 20px; }
+.mkt-doc-back a { color: var(--text-muted); font-size: 0.92rem; }
+.mkt-doc-back a:hover { color: var(--text); }
+.mkt-doc-head h1 { font-size: clamp(1.85rem, 4vw, 2.6rem); letter-spacing: -0.04em; font-weight: 800; max-width: 22ch; }
+.mkt-doc-head .lead { color: var(--text-muted); font-size: 1.08rem; margin-top: 12px; max-width: 62ch; }
+.mkt-doc-body h2 { font-size: 1.25rem; margin-top: 32px; }
+.mkt-doc-body p,
+.mkt-doc-body li { color: var(--text-muted); margin-top: 10px; max-width: 72ch; }
+.mkt-doc-body ul { padding-left: 1.25rem; margin-top: 8px; }
+.mkt-doc-body code {
+  font-family: var(--font-mono); font-size: 0.88em; background: var(--surface-2);
+  padding: 0.12em 0.35em; border-radius: 4px;
+}
+.mkt-doc-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }

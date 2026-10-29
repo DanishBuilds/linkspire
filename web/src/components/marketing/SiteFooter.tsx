@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-// Public marketing footer. Links point to on-page sections and real app routes.
 export function SiteFooter() {
   const year = new Date().getFullYear();
   return (
@@ -18,16 +17,16 @@ export function SiteFooter() {
           <div>
             <h4>Product</h4>
             <ul>
-              <li><a href="#features">Features</a></li>
-              <li><a href="#analytics">Analytics</a></li>
-              <li><a href="#privacy">Privacy by design</a></li>
+              <li><Link href="/features">Features</Link></li>
+              <li><Link href="/analytics">Analytics</Link></li>
+              <li><Link href="/privacy">Privacy by design</Link></li>
               <li><Link href="/register">Get started</Link></li>
             </ul>
           </div>
           <div>
             <h4>Developers</h4>
             <ul>
-              <li><a href="#developers">API and webhooks</a></li>
+              <li><Link href="/developers">API and webhooks</Link></li>
               <li><Link href="/login">Sign in</Link></li>
               <li><Link href="/report-abuse">Report abuse</Link></li>
             </ul>
@@ -35,8 +34,8 @@ export function SiteFooter() {
           <div>
             <h4>Company</h4>
             <ul>
-              <li><a href="#privacy">Privacy</a></li>
-              <li><a href="#top">Back to top</a></li>
+              <li><Link href="/privacy">Privacy</Link></li>
+              <li><Link href="/">Home</Link></li>
             </ul>
           </div>
         </div>

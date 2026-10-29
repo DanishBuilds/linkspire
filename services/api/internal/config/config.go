@@ -41,6 +41,13 @@ type Config struct {
 	OIDCClientID     string
 	OIDCClientSecret string
 	OIDCRedirectURL  string
+	OIDCPostLoginURL string
+
+	WebAuthnRPID     string
+	WebAuthnRPOrigin string
+	WebAuthnRPName   string
+
+	QRPublicBase string
 
 	GSBFile       string
 	ClickHouseURL string
@@ -76,6 +83,11 @@ func Load() (*Config, error) {
 		OIDCClientID:      getStr("OIDC_CLIENT_ID", ""),
 		OIDCClientSecret:  getStr("OIDC_CLIENT_SECRET", ""),
 		OIDCRedirectURL:   getStr("OIDC_REDIRECT_URL", ""),
+		OIDCPostLoginURL:  getStr("OIDC_POST_LOGIN_URL", ""),
+		WebAuthnRPID:      getStr("WEBAUTHN_RP_ID", ""),
+		WebAuthnRPOrigin:  getStr("WEBAUTHN_RP_ORIGIN", ""),
+		WebAuthnRPName:    getStr("WEBAUTHN_RP_NAME", "Linkspire"),
+		QRPublicBase:      getStr("QR_PUBLIC_BASE", ""),
 		GSBFile:           getStr("GSB_PREFIX_FILE", ""),
 		ClickHouseURL:     getStr("CLICKHOUSE_URL", ""),
 		AskToken:          getStr("TLS_ASK_TOKEN", "dev-ask-token"),

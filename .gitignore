@@ -9,6 +9,9 @@ logs_*.txt
 tmp-e2e/
 tmpdebug/
 
+Claude outputs/
+*.tgz
+
 .next/
 web/.next/
 .idea/

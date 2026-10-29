@@ -54,6 +54,12 @@ serviceMonitor:
   enabled: false
   interval: 30s
 
+# Argo Rollouts progressive delivery. When enabled, services whose canary.enabled
+# is true render as a Rollout (canary strategy) instead of a Deployment. Requires
+# the Argo Rollouts controller installed in the cluster.
+rollouts:
+  enabled: false
+
 services:
   redirect:
     kind: go
@@ -72,6 +78,15 @@ services:
       targetMemoryUtilizationPercentage: 75
     pdb:
       minAvailable: "50%"
+    canary:
+      enabled: true
+      steps:
+        - setWeight: 10
+        - pause: { duration: 60 }
+        - setWeight: 30
+        - pause: { duration: 120 }
+        - setWeight: 60
+        - pause: { duration: 120 }
     resources:
       requests: { cpu: "250m", memory: "128Mi" }
       limits: { cpu: "1", memory: "256Mi" }
@@ -92,6 +107,13 @@ services:
       targetCPUUtilizationPercentage: 70
     pdb:
       minAvailable: 1
+    canary:
+      enabled: true
+      steps:
+        - setWeight: 25
+        - pause: { duration: 60 }
+        - setWeight: 75
+        - pause: { duration: 120 }
     resources:
       requests: { cpu: "100m", memory: "128Mi" }
       limits: { cpu: "500m", memory: "256Mi" }
@@ -109,6 +131,8 @@ services:
       enabled: false
     pdb:
       maxUnavailable: 1
+    canary:
+      enabled: false
     resources:
       requests: { cpu: "100m", memory: "128Mi" }
       limits: { cpu: "500m", memory: "512Mi" }
@@ -130,6 +154,8 @@ services:
       targetCPUUtilizationPercentage: 70
     pdb:
       minAvailable: 1
+    canary:
+      enabled: false
     resources:
       requests: { cpu: "100m", memory: "192Mi" }
       limits: { cpu: "500m", memory: "384Mi" }

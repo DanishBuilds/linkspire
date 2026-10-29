@@ -6,6 +6,8 @@
 name: linkspire
 
 x-app-env: &app-env
+  ENV: "dev"
+  PG_ENABLED: "true"
   PG_DSN: "postgresql://root@cockroach:26257/linkspire?sslmode=disable"
   REDIS_ENABLED: "true"
   REDIS_ADDRS: "redis:6379"
@@ -78,19 +80,27 @@ services:
       timeout: 5s
       retries: 20
 
-  # One-shot: create the database then apply golang-migrate migrations.
+  # One-shot: apply migrations. Skips 000006 (multi-region locality; prod-only on CRDB with --locality).
   migrate:
-    image: migrate/migrate:v4.18.1
+    image: cockroachdb/cockroach:v24.2.3
     depends_on:
       cockroach: { condition: service_healthy }
     volumes:
       - ../../db/migrations:/migrations:ro
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: ["/bin/bash", "-c"]
     command:
-      - >
-        migrate -path=/migrations
-        -database "cockroach://root@cockroach:26257/linkspire?sslmode=disable&x-tls-mode=disable"
-        up
+      - |
+        set -e
+        ./cockroach sql --insecure --host=cockroach -e "CREATE DATABASE IF NOT EXISTS linkspire;"
+        if ./cockroach sql --insecure --host=cockroach --database=linkspire -e "SELECT 1 FROM workspaces LIMIT 1;" >/dev/null 2>&1; then
+          echo "Schema already present; skipping migrations."
+          exit 0
+        fi
+        for f in 000001_enums 000002_identity 000003_domains 000004_links 000005_governance 000007_ops; do
+          echo "Applying $$f..."
+          ./cockroach sql --insecure --host=cockroach --database=linkspire -f "/migrations/$$f.up.sql"
+        done
+        echo "Migrations complete (000006 skipped for local single-node)."
     restart: "no"
 
   redirect:
@@ -143,6 +153,7 @@ services:
       LINKSPIRE_API_URL: "http://api:8081"
       NEXT_PUBLIC_SHORT_BASE_URL: "http://localhost:8080"
       SESSION_COOKIE_SECURE: "false"
+      LINKSPIRE_NO_CACHE: "true"
     ports:
       - "3000:3000"
     depends_on:

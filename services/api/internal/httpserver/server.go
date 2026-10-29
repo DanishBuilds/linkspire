@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-webauthn/webauthn/webauthn"
+
 	"github.com/linkspire/linkspire/pkg/argon2id"
 	"github.com/linkspire/linkspire/pkg/idgen"
 	"github.com/linkspire/linkspire/pkg/problem"
@@ -40,11 +42,25 @@ type Server struct {
 	repo  *repo.Repo
 	alloc *idgen.Allocator
 	gsb   *scan.HashPrefixDB
+	wa    *webauthn.WebAuthn
 	log   *slog.Logger
 }
 
 func New(cfg *config.Config, r *repo.Repo, alloc *idgen.Allocator, gsb *scan.HashPrefixDB, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, repo: r, alloc: alloc, gsb: gsb, log: log}
+	var wa *webauthn.WebAuthn
+	if cfg.WebAuthnRPID != "" && cfg.WebAuthnRPOrigin != "" {
+		w, err := webauthn.New(&webauthn.Config{
+			RPDisplayName: cfg.WebAuthnRPName,
+			RPID:          cfg.WebAuthnRPID,
+			RPOrigins:     []string{cfg.WebAuthnRPOrigin},
+		})
+		if err != nil {
+			log.Error("webauthn init", "err", err)
+		} else {
+			wa = w
+		}
+	}
+	return &Server{cfg: cfg, repo: r, alloc: alloc, gsb: gsb, wa: wa, log: log}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -57,6 +73,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/auth/mfa/totp/enable", s.authn(s.totpEnable))
 	mux.HandleFunc("GET /v1/auth/oidc/start", s.oidcStart)
 	mux.HandleFunc("GET /v1/auth/oidc/callback", s.oidcCallback)
+	mux.HandleFunc("POST /v1/auth/webauthn/register/begin", s.authn(s.webauthnRegisterBegin))
+	mux.HandleFunc("POST /v1/auth/webauthn/register/finish", s.authn(s.webauthnRegisterFinish))
+	mux.HandleFunc("POST /v1/auth/webauthn/login/begin", s.webauthnLoginBegin)
+	mux.HandleFunc("POST /v1/auth/webauthn/login/finish", s.webauthnLoginFinish)
+	mux.HandleFunc("GET /v1/auth/webauthn/credentials", s.authn(s.webauthnList))
+	mux.HandleFunc("DELETE /v1/auth/webauthn/credentials/{id}", s.authn(s.webauthnDelete))
 
 	mux.HandleFunc("GET /v1/workspaces", s.authn(s.listWorkspaces))
 	mux.HandleFunc("GET /v1/workspaces/{id}/members", s.authn(s.requireWS(s.listMembers)))
@@ -75,6 +97,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /v1/domains/{id}", s.authn(s.requireWS(s.patchDomain)))
 
 	mux.HandleFunc("POST /v1/links/{domainId}/{code}/qr", s.authn(s.requireWS(s.requestQR)))
+	mux.HandleFunc("GET /v1/links/{domainId}/{code}/qr", s.authn(s.requireWS(s.listQR)))
 	mux.HandleFunc("POST /v1/api-keys", s.authn(s.requireWS(s.createKey)))
 	mux.HandleFunc("GET /v1/api-keys", s.authn(s.requireWS(s.listKeys)))
 	mux.HandleFunc("DELETE /v1/api-keys/{id}", s.authn(s.requireWS(s.revokeKey)))
@@ -92,6 +115,8 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /internal/tls/ask", s.tlsAsk)
 	mux.HandleFunc("POST /v1/abuse/reports", s.abuseReport)
+	mux.HandleFunc("GET /v1/admin/abuse", s.authn(s.requireStaff(s.adminListAbuse)))
+	mux.HandleFunc("POST /v1/admin/abuse/{id}/resolve", s.authn(s.requireStaff(s.adminResolveAbuse)))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /readyz", s.ready)
@@ -318,9 +343,10 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ws, _ := s.repo.ListMemberships(r.Context(), p.UserID)
+	staff, _ := s.repo.IsStaff(r.Context(), p.UserID)
 	writeJSON(w, 200, map[string]any{
 		"id": u.ID, "email": u.Email, "mfa_enabled": u.MFAEnabled,
-		"gpc_optout": u.GPCOptOut, "home_region": u.HomeRegion, "workspaces": ws,
+		"gpc_optout": u.GPCOptOut, "home_region": u.HomeRegion, "is_staff": staff, "workspaces": ws,
 	})
 }
 
@@ -350,7 +376,7 @@ func (s *Server) totpSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{
-		"secret": b32,
+		"secret":      b32,
 		"otpauth_url": auth.OTPAuthURL(u.Email, b32, "Linkspire"),
 	})
 }
@@ -381,25 +407,6 @@ func (s *Server) totpEnable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]any{"mfa_enabled": true})
-}
-
-func (s *Server) oidcStart(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.OIDCIssuer == "" {
-		problem.Write(w, problem.New(501, "Not implemented", "OIDC is not configured on this deployment", r.URL.Path))
-		return
-	}
-	// Authorization URL is assembled by the configured issuer; the callback completes login.
-	u := s.cfg.OIDCIssuer + "/authorize?client_id=" + s.cfg.OIDCClientID +
-		"&redirect_uri=" + s.cfg.OIDCRedirectURL + "&response_type=code&scope=openid%20email"
-	http.Redirect(w, r, u, http.StatusFound)
-}
-
-func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.OIDCIssuer == "" {
-		problem.Write(w, problem.New(501, "Not implemented", "OIDC is not configured on this deployment", r.URL.Path))
-		return
-	}
-	problem.Write(w, problem.New(501, "Not implemented", "OIDC token exchange requires issuer JWKS wiring in this environment", r.URL.Path))
 }
 
 func (s *Server) listWorkspaces(w http.ResponseWriter, r *http.Request) {

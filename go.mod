@@ -5,6 +5,7 @@ go 1.26.0
 
 require (
 	github.com/bits-and-blooms/bloom/v3 v3.7.0
+	github.com/go-webauthn/webauthn v0.11.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/mileusna/useragent v1.3.4

@@ -1,4 +1,5 @@
 {{- range $name, $svc := .Values.services }}
+{{- if not (and $.Values.rollouts.enabled $svc.canary.enabled) }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -109,4 +110,5 @@ spec:
         - name: next-cache
           emptyDir: {}
         {{- end }}
+{{- end }}
 {{- end }}

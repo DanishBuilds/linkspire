@@ -303,8 +303,23 @@ func (s *Server) analytics(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	if days <= 0 {
+		days = 90
+	}
 	// Best-effort query; failure degrades to empty rather than blocking the API SLO.
-	writeJSON(w, 200, map[string]any{"data": []any{}, "source": "clickhouse"})
+	rows, err := s.clickhouseRollups(r.Context(), did, code, days)
+	if err != nil {
+		s.log.Warn("clickhouse query", "err", err)
+		writeJSON(w, 200, map[string]any{
+			"data":    []any{},
+			"source":  "clickhouse",
+			"note":    "analytics temporarily unavailable; serving empty aggregates",
+			"privacy": "no raw IP or user-agent is stored",
+		})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"data": rows, "source": "clickhouse"})
 }
 
 func (s *Server) createDSAR(w http.ResponseWriter, r *http.Request) {
@@ -422,6 +437,43 @@ func (s *Server) abuseReport(w http.ResponseWriter, r *http.Request) {
 		problem.Write(w, problem.New(400, "Bad request", err.Error(), r.URL.Path))
 		return
 	}
+	if _, err := s.repo.InsertAbuseReport(r.Context(), in.ShortURL, in.Reason, nil); err != nil {
+		s.log.Error("abuse insert", "err", err)
+		problem.Write(w, problem.New(500, "Internal error", "could not record report", r.URL.Path))
+		return
+	}
 	s.repo.Audit(r.Context(), 0, 0, 0, "abuse.report", "link", in.ShortURL)
 	writeJSON(w, 202, map[string]any{"status": "queued", "note": "report entered the admin review queue"})
+}
+
+func (s *Server) listQR(w http.ResponseWriter, r *http.Request) {
+	p := PrincipalFrom(r)
+	did, _ := strconv.ParseInt(r.PathValue("domainId"), 10, 64)
+	code := r.PathValue("code")
+	if _, err := s.repo.GetLink(r.Context(), p.WorkspaceID, did, code); err != nil {
+		problem.Write(w, problem.New(404, "Not found", "link", r.URL.Path))
+		return
+	}
+	rows, err := s.repo.ListQR(r.Context(), did, code)
+	if err != nil {
+		problem.Write(w, problem.New(500, "Internal error", err.Error(), r.URL.Path))
+		return
+	}
+	base := strings.TrimRight(s.cfg.QRPublicBase, "/")
+	data := make([]any, 0, len(rows))
+	for _, q := range rows {
+		status := "queued"
+		url := ""
+		if q.ObjectKey != nil && *q.ObjectKey != "" {
+			status = "ready"
+			if base != "" {
+				url = base + "/" + *q.ObjectKey
+			}
+		}
+		data = append(data, map[string]any{
+			"id": q.ID, "format": q.Format, "ec_level": q.ECLevel, "size": q.Size,
+			"status": status, "url": url, "created_at": q.CreatedAt,
+		})
+	}
+	writeJSON(w, 200, map[string]any{"data": data})
 }
