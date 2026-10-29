@@ -1,0 +1,27 @@
+{{/* services/redirect/internal/handler/templates/warning.html */}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Warning: suspicious link</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem;color:#1b1b1b}
+    .card{border:1px solid #e0a800;background:#fff8e1;border-radius:.5rem;padding:1.5rem}
+    h1{color:#8a6d00;font-size:1.4rem}
+    .dest{word-break:break-all;background:#fff;border:1px solid #ddd;border-radius:.25rem;padding:.5rem;font-family:monospace}
+    a.btn{display:inline-block;margin-top:1rem;padding:.6rem 1rem;border-radius:.25rem;background:#8a6d00;color:#fff;text-decoration:none}
+  </style>
+</head>
+<body>
+  <main class="card" role="alert">
+    <h1>⚠️ This link may be unsafe</h1>
+    <p>Our automated scanners flagged the destination of this short link as potentially
+       malicious or deceptive. We are showing you this page so you can decide whether to continue.</p>
+    <p class="dest">{{.Destination}}</p>
+    <p>If you did not expect this link, do not continue.</p>
+    <a class="btn" href="{{.Destination}}" rel="nofollow noopener noreferrer">Continue anyway</a>
+  </main>
+</body>
+</html>
