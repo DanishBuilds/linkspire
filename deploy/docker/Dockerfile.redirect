@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1.7
+# Linkspire redirect service (Phase 3). Build context is the REPO ROOT:
+#   docker build -f deploy/docker/Dockerfile.redirect -t linkspire/redirect .
+FROM golang:1.26-bookworm AS build
+WORKDIR /src
+# Cache modules first.
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY pkg ./pkg
+COPY services ./services
+# Static, stripped, reproducible binary. No CGO so it runs on distroless/static.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOFLAGS=-trimpath \
+    go build -ldflags="-s -w" -o /out/redirect ./services/redirect
+
+FROM gcr.io/distroless/static-debian12:nonroot
+LABEL org.opencontainers.image.title="linkspire-redirect" \
+      org.opencontainers.image.source="https://github.com/linkspire/linkspire"
+COPY --from=build /out/redirect /usr/local/bin/redirect
+# Public redirect :8080, admin (metrics/health) :9090. Runs as uid 65532 (nonroot).
+EXPOSE 8080 9090
+USER nonroot:nonroot
+ENTRYPOINT ["/usr/local/bin/redirect"]

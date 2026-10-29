@@ -8,15 +8,16 @@ Linkspire is an internet-scale, privacy-by-design link platform targeting **100M
 average, **50k req/s** burst, redirect **p99 < 30 ms** at origin, and **99.99%** redirect
 availability with **RPO = 0** for committed link data.
 
-This repository is delivered in phases. **Phases 1–5** are in-tree:
+This repository is delivered in phases. **Phases 1–6** are in-tree:
 
 - Architecture, capacity, ADRs, STRIDE — `docs/architecture/01`–`04`
 - Data layer — `db/migrations`, `db/clickhouse`, `docs/architecture/05-data-layer.md`
 - Redirect service — `services/redirect`, `docs/architecture/06-redirect-service.md`
 - Management API + workers — `services/api`, `services/workers`, `docs/architecture/07-management-api.md`
 - Dashboard — `web`, `docs/architecture/08-dashboard.md` (Next.js, WCAG 2.2 AA)
+- Infrastructure — `deploy`, `test`, `.github/workflows`, `docs/architecture/09-infrastructure.md` (Docker, Helm, Terraform, k6, CI/CD)
 
-Remaining: infra (Phase 6), compliance pack (Phase 7).
+Remaining: compliance pack (Phase 7).
 
 ## Phase 1 deliverables
 
@@ -47,13 +48,13 @@ linkspire/
 │   └── clickhouse/              # ClickHouse DDL + TTLs
 ├── web/                         # Phase 5: dashboard (Next.js, WCAG 2.2 AA) — DONE
 ├── deploy/
-│   ├── docker/                  # Phase 6: distroless, non-root Dockerfiles
-│   ├── helm/                    # Phase 6: charts + HPA + PodDisruptionBudgets
-│   └── terraform/               # Phase 6: cloud modules
+│   ├── docker/                  # Phase 6: distroless, non-root Dockerfiles — DONE
+│   ├── helm/                    # Phase 6: charts + HPA + PodDisruptionBudgets — DONE
+│   └── terraform/               # Phase 6: cloud modules — DONE
 ├── test/
-│   ├── load/                    # Phase 6: k6 scripts + results
+│   ├── load/                    # Phase 6: k6 scripts + results — DONE
 │   └── security/                # SSRF suite, rate-limit bypass, authz/tenant isolation, decoder fuzzing
-└── .github/workflows/           # Phase 6: CI/CD, SAST, image scan, SBOM, canary
+└── .github/workflows/           # Phase 6: CI/CD, SAST, image scan, SBOM, canary — DONE
 ```
 
 ## Core principles (binding constraints)

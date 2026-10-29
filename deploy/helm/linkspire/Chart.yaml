@@ -1,0 +1,12 @@
+apiVersion: v2
+name: linkspire
+description: Privacy-first URL shortener platform (redirect, API, workers, dashboard)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Linkspire
+keywords:
+  - url-shortener
+  - redirect
+  - privacy

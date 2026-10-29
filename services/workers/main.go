@@ -4,10 +4,13 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/linkspire/linkspire/pkg/scan"
 	"github.com/linkspire/linkspire/services/workers/internal/config"
@@ -43,6 +46,38 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	defer st.Close()
+
+	// Observability server: liveness, readiness (DB ping), and Prometheus metrics.
+	// Workers have no inbound traffic, so this is the only HTTP surface and is used
+	// by Kubernetes probes.
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	adminMux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		pctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := st.Pool.Ping(pctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("not ready: db"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ready"))
+	})
+	adminMux.Handle("/metrics", promhttp.Handler())
+	adminSrv := &http.Server{Addr: cfg.MetricsAddr, Handler: adminMux, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		if err := adminSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("admin server", "err", err)
+		}
+	}()
+	defer func() {
+		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = adminSrv.Shutdown(sctx)
+	}()
 
 	gsb := &scan.HashPrefixDB{}
 	_ = gsb.LoadFile(cfg.GSBFile)

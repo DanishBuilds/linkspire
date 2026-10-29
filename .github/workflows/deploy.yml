@@ -1,0 +1,68 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (e.g. a git SHA or vX.Y.Z)"
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    name: Canary then promote
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.inputs.image_tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > "$HOME/.kube/config"
+
+      - name: Deploy canary (10% of fleet)
+        run: |
+          helm upgrade --install linkspire-canary deploy/helm/linkspire \
+            --namespace linkspire --create-namespace \
+            --set global.image.tag=${{ steps.tag.outputs.tag }} \
+            --set services.redirect.replicas=1 \
+            --set services.redirect.autoscaling.enabled=false \
+            --set services.api.replicas=1 \
+            --set services.api.autoscaling.enabled=false \
+            --set services.workers.replicas=0 \
+            --set services.web.replicas=1 \
+            --set services.web.autoscaling.enabled=false \
+            --wait --timeout 5m
+
+      - name: Smoke test canary
+        run: |
+          kubectl -n linkspire rollout status deploy/linkspire-canary-redirect --timeout=120s
+          kubectl -n linkspire rollout status deploy/linkspire-canary-api --timeout=120s
+
+      - name: Promote to production
+        run: |
+          helm upgrade --install linkspire deploy/helm/linkspire \
+            --namespace linkspire --create-namespace \
+            --set global.image.tag=${{ steps.tag.outputs.tag }} \
+            --wait --timeout 10m
+
+      - name: Remove canary
+        if: always()
+        run: helm uninstall linkspire-canary --namespace linkspire || true

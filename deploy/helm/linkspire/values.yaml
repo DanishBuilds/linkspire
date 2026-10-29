@@ -1,0 +1,135 @@
+# Default values for the Linkspire chart.
+# Each entry under `services` is rendered into a Deployment + Service (+ HPA, PDB).
+
+global:
+  image:
+    registry: ghcr.io/linkspire
+    tag: ""            # defaults to .Chart.appVersion when empty
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+# Non-secret configuration shared by all Go services (rendered into a ConfigMap).
+config:
+  PG_DSN: "postgresql://root@cockroachdb:26257/linkspire?sslmode=verify-full"
+  REDIS_ENABLED: "true"
+  REDIS_ADDRS: "redis-master:6379"
+  KAFKA_ENABLED: "true"
+  KAFKA_BROKERS: "redpanda:9092"
+  PUBLIC_BASE_URL: "https://lnk.linkspire.io"
+  DEFAULT_DOMAIN_ID: "1"
+  DEFAULT_DOMAIN_HOST: "lnk.linkspire.io"
+  CLICKHOUSE_URL: "http://clickhouse:8123"
+
+# Secret values. In production, source these from an external secret manager
+# (External Secrets Operator / CSI) rather than committing them. Leaving a key
+# empty renders no Secret entry.
+secrets:
+  create: true
+  values:
+    TOKEN_SIGNING_KEY: ""
+    FEISTEL_KEY: ""
+    COOKIE_SIGNING_KEY: ""
+    TLS_ASK_TOKEN: ""
+
+# Hardened defaults applied to every pod/container.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+serviceAccount:
+  create: true
+  name: ""
+
+# Prometheus Operator ServiceMonitor (set true if the CRD is installed).
+serviceMonitor:
+  enabled: false
+  interval: 30s
+
+services:
+  redirect:
+    kind: go
+    image: redirect
+    port: 8080
+    metricsPort: 9090
+    replicas: 3
+    env:
+      HTTP_ADDR: ":8080"
+      METRICS_ADDR: ":9090"
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 50
+      targetCPUUtilizationPercentage: 60
+      targetMemoryUtilizationPercentage: 75
+    pdb:
+      minAvailable: "50%"
+    resources:
+      requests: { cpu: "250m", memory: "128Mi" }
+      limits: { cpu: "1", memory: "256Mi" }
+
+  api:
+    kind: go
+    image: api
+    port: 8081
+    metricsPort: 9091
+    replicas: 2
+    env:
+      HTTP_ADDR: ":8081"
+      METRICS_ADDR: ":9091"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      minAvailable: 1
+    resources:
+      requests: { cpu: "100m", memory: "128Mi" }
+      limits: { cpu: "500m", memory: "256Mi" }
+
+  workers:
+    kind: go
+    image: workers
+    port: 0              # no inbound traffic; no Service rendered
+    metricsPort: 9092
+    replicas: 1
+    env:
+      WORKER_ROLE: "all"
+      METRICS_ADDR: ":9092"
+    autoscaling:
+      enabled: false
+    pdb:
+      maxUnavailable: 1
+    resources:
+      requests: { cpu: "100m", memory: "128Mi" }
+      limits: { cpu: "500m", memory: "512Mi" }
+
+  web:
+    kind: web
+    image: web
+    port: 3000
+    metricsPort: 0
+    replicas: 2
+    env:
+      LINKSPIRE_API_URL: "http://api:8081"
+      NEXT_PUBLIC_SHORT_BASE_URL: "https://lnk.linkspire.io"
+      SESSION_COOKIE_SECURE: "true"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      minAvailable: 1
+    resources:
+      requests: { cpu: "100m", memory: "192Mi" }
+      limits: { cpu: "500m", memory: "384Mi" }

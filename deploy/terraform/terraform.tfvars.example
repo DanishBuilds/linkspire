@@ -1,0 +1,15 @@
+project     = "linkspire"
+environment = "prod"
+region      = "us-east-1"
+vpc_cidr    = "10.42.0.0/16"
+az_count    = 3
+eks_version = "1.30"
+
+node_instance_types = ["m6i.large"]
+node_min            = 3
+node_max            = 20
+node_desired        = 4
+
+tags = {
+  Owner = "platform"
+}

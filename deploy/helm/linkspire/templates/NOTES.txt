@@ -1,0 +1,15 @@
+Linkspire {{ .Chart.AppVersion }} deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Services:
+{{- range $name, $svc := .Values.services }}
+  - {{ $name }} ({{ $svc.kind }}){{ if gt (int ($svc.port | default 0)) 0 }} on port {{ $svc.port }}{{ end }}{{ if $svc.autoscaling.enabled }} [HPA {{ $svc.autoscaling.minReplicas }}-{{ $svc.autoscaling.maxReplicas }}]{{ end }}
+{{- end }}
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} get deploy,hpa,pdb -l app.kubernetes.io/part-of=linkspire
+
+Reach the dashboard (port-forward):
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "linkspire.fullname" . }}-web 3000:3000
+
+Reminder: set real secrets (TOKEN_SIGNING_KEY, FEISTEL_KEY, COOKIE_SIGNING_KEY) via an
+external secret manager rather than chart values before exposing this publicly.

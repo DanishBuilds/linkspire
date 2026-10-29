@@ -1,0 +1,153 @@
+# deploy/docker/compose.yaml
+# Full local Linkspire stack: data services + migrations + all four app services.
+# Run from the repo root:
+#   docker compose -f deploy/docker/compose.yaml up --build
+# The build context for the app images is the repo root (set per service below).
+name: linkspire
+
+x-app-env: &app-env
+  PG_DSN: "postgresql://root@cockroach:26257/linkspire?sslmode=disable"
+  REDIS_ENABLED: "true"
+  REDIS_ADDRS: "redis:6379"
+  KAFKA_ENABLED: "true"
+  KAFKA_BROKERS: "redpanda:9092"
+  # Dev-only secrets. Override for anything real. Must be >= 16 bytes.
+  TOKEN_SIGNING_KEY: "dev-insecure-token-key-change-me"
+  FEISTEL_KEY: "dev-insecure-feistel-key-change"
+  COOKIE_SIGNING_KEY: "dev-insecure-cookie-key-change-me"
+  PUBLIC_BASE_URL: "http://localhost:8080"
+  DEFAULT_DOMAIN_ID: "1"
+  DEFAULT_DOMAIN_HOST: "localhost:8080"
+
+services:
+  cockroach:
+    image: cockroachdb/cockroach:v24.2.3
+    command: start-single-node --insecure
+    ports:
+      - "26257:26257"
+      - "8090:8080"   # CockroachDB admin UI
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+    healthcheck:
+      test: ["CMD", "cockroach", "sql", "--insecure", "-e", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+    ports:
+      - "19092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    ports:
+      - "8123:8123"
+      - "9009:9000"
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ../../db/clickhouse/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-shot: create the database then apply golang-migrate migrations.
+  migrate:
+    image: migrate/migrate:v4.18.1
+    depends_on:
+      cockroach: { condition: service_healthy }
+    volumes:
+      - ../../db/migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        migrate -path=/migrations
+        -database "cockroach://root@cockroach:26257/linkspire?sslmode=disable&x-tls-mode=disable"
+        up
+    restart: "no"
+
+  redirect:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.redirect
+    environment:
+      <<: *app-env
+      HTTP_ADDR: ":8080"
+      METRICS_ADDR: ":9090"
+    ports:
+      - "8080:8080"
+    depends_on:
+      cockroach: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.api
+    environment:
+      <<: *app-env
+      HTTP_ADDR: ":8081"
+      METRICS_ADDR: ":9091"
+      CLICKHOUSE_URL: "http://clickhouse:8123"
+    ports:
+      - "8081:8081"
+    depends_on:
+      cockroach: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  workers:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.workers
+    environment:
+      <<: *app-env
+      WORKER_ROLE: "all"
+      METRICS_ADDR: ":9092"
+    depends_on:
+      cockroach: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.web
+    environment:
+      LINKSPIRE_API_URL: "http://api:8081"
+      NEXT_PUBLIC_SHORT_BASE_URL: "http://localhost:8080"
+      SESSION_COOKIE_SECURE: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  cockroach-data:
+  clickhouse-data:

@@ -1,0 +1,13 @@
+.git
+**/node_modules
+web/.next
+bin
+*.exe
+*.log
+logs_*.txt
+docs
+test
+deploy
+.github
+.idea
+gosrc.tgz

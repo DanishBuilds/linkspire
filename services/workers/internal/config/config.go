@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	Role            string // all | scanner | scraper | verifier | qr | retention | dsar | webhooks
+	MetricsAddr     string
 	PGDSN           string
 	PGMaxConns      int32
 	AssetDir        string
@@ -23,6 +24,7 @@ type Config struct {
 func Load() (*Config, error) {
 	c := &Config{
 		Role:            getStr("WORKER_ROLE", "all"),
+		MetricsAddr:     getStr("METRICS_ADDR", ":9092"),
 		PGDSN:           getStr("PG_DSN", "postgresql://root@127.0.0.1:26257/linkspire?sslmode=disable"),
 		PGMaxConns:      int32(getInt("PG_MAX_CONNS", 8)),
 		AssetDir:        getStr("ASSET_DIR", os.TempDir()+"/linkspire-qr"),
