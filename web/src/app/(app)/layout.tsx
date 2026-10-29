@@ -5,6 +5,8 @@ import { NavLink } from '@/components/NavLink';
 import { Icon } from '@/components/icons';
 import { Badge } from '@/components/Badge';
 import { logoutAction } from '@/app/actions/auth';
+import { getWorkspaceId } from '@/lib/session';
+import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher';
 import type { Me } from '@/lib/types';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +17,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (e instanceof ApiError && (e.status === 401 || e.status === 0)) redirect('/logout');
     throw e;
   }
-  const primary = me.workspaces[0];
+  const wsCookie = await getWorkspaceId();
+  const selected = me.workspaces.find((w) => String(w.workspaceId) === wsCookie) ?? me.workspaces[0];
 
   return (
     <>
@@ -38,9 +41,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="main">
           <header className="topbar">
             <div className="cluster">
-              <strong>{primary?.workspaceName || 'Workspace'}</strong>
-              {primary ? <Badge tone="info">{primary.role}</Badge> : null}
-              {primary ? <span className="muted nowrap">{primary.homeRegion.toUpperCase()} region</span> : null}
+              <WorkspaceSwitcher workspaces={me.workspaces} currentId={selected?.workspaceId ?? 0} />
+              {selected ? <Badge tone="info">{selected.role}</Badge> : null}
+              {selected ? <span className="muted nowrap">{selected.homeRegion.toUpperCase()} region</span> : null}
             </div>
             <div className="cluster">
               <span className="muted truncate" title={me.email}>{me.email}</span>

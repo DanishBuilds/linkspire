@@ -96,3 +96,21 @@ export async function requestQrAction(_prev: LinkFormState, formData: FormData):
     return { error: e instanceof ApiError ? (e.detail || e.title) : 'Could not queue the QR code.' };
   }
 }
+
+export interface BulkState { error?: string; created?: number; failed?: number; errors?: string[] }
+
+export async function bulkCreateAction(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  const raw = String(formData.get('urls') || '');
+  const urls = raw.split(/\r?\n/).map((u) => u.trim()).filter(Boolean);
+  if (urls.length === 0) return { error: 'Paste at least one URL, one per line.' };
+  if (urls.length > 100) return { error: 'Bulk create accepts at most 100 URLs at a time.' };
+  try {
+    const res = await api.bulkCreate(urls.map((destination) => ({ destination })));
+    revalidatePath('/links');
+    revalidatePath('/dashboard');
+    return { created: res.ok.length, failed: res.errors.length, errors: res.errors.slice(0, 10) };
+  } catch (e) {
+    return { error: e instanceof ApiError ? (e.detail || e.title) : 'Bulk create failed.' };
+  }
+}
+

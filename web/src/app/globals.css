@@ -492,3 +492,24 @@ table.data tbody tr:last-child td { border-bottom: none; }
 .footer-cols a { color: var(--text-muted); }
 .footer-cols a:hover { color: var(--text); }
 .footer-bottom { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--text-faint); font-size: 0.88rem; }
+
+/* marketing mobile menu */
+.mkt-menu { display: none; position: relative; }
+.mkt-menu > summary { list-style: none; cursor: pointer; }
+.mkt-menu > summary::-webkit-details-marker { display: none; }
+.mkt-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); padding: 12px; min-width: 220px; display: flex; flex-direction: column; gap: 4px;
+}
+.mkt-menu-panel nav { display: flex; flex-direction: column; }
+.mkt-menu-panel nav a {
+  padding: 10px 10px; color: var(--text-muted); border-radius: var(--radius);
+  min-height: 44px; display: flex; align-items: center;
+}
+.mkt-menu-panel nav a:hover { background: var(--surface-2); color: var(--text); }
+.mkt-menu-actions { display: flex; gap: 8px; margin-top: 8px; }
+@media (max-width: 760px) {
+  .mkt-menu { display: block; }
+  .mkt-actions { display: none; }
+}

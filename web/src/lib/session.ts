@@ -26,3 +26,25 @@ export async function clearSession(): Promise<void> {
   const store = await cookies();
   store.delete(env.sessionCookie);
 }
+
+const WS_COOKIE = `${env.sessionCookie}_ws`;
+
+// The selected workspace id (sent as X-Workspace-Id). Optional: when unset the
+// API falls back to the user's first membership.
+export async function getWorkspaceId(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(WS_COOKIE)?.value ?? null;
+}
+
+export async function setWorkspaceId(id: string): Promise<void> {
+  const store = await cookies();
+  store.set(WS_COOKIE, id, {
+    httpOnly: true, sameSite: 'lax', secure: env.cookieSecure, path: '/', maxAge: 12 * 60 * 60,
+  });
+}
+
+export async function clearWorkspaceId(): Promise<void> {
+  const store = await cookies();
+  store.delete(WS_COOKIE);
+}
+

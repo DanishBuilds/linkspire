@@ -4,7 +4,7 @@
 //   * normalize the API's mixed snake_case / PascalCase JSON into clean models
 //   * surface RFC 9457 problem+json as a typed ApiError
 import { env } from './env';
-import { getToken } from './session';
+import { getToken, getWorkspaceId } from './session';
 import type {
   Me, Membership, Link, DomainRecord, NewDomainInstructions, ApiKey, Webhook,
   DsarRequest, AnalyticsResult, AnalyticsRow, Role, TotpSetup,
@@ -54,6 +54,10 @@ async function request<T = any>(path: string, opts: Options = {}): Promise<T> {
   let token = opts.token ?? null;
   if (auth && token == null) token = await getToken();
   if (token) h['Authorization'] = `Bearer ${token}`;
+  if (auth) {
+    const ws = await getWorkspaceId();
+    if (ws) h['X-Workspace-Id'] = ws;
+  }
 
   let res: Response;
   try {
@@ -198,6 +202,15 @@ export async function totpEnable(code: string): Promise<void> {
 export async function workspaces(): Promise<Membership[]> {
   const r = await request('/v1/workspaces');
   return listOf(r).map(normMembership);
+}
+
+export async function listMembers(workspaceId: number): Promise<Membership[]> {
+  const r = await request(`/v1/workspaces/${workspaceId}/members`);
+  return listOf(r).map(normMembership);
+}
+
+export async function setMemberRole(workspaceId: number, userId: number, role: string): Promise<void> {
+  await request(`/v1/workspaces/${workspaceId}/members/${userId}`, { method: 'PUT', body: { role } });
 }
 
 /* ---------- links ---------- */

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import * as api from '@/lib/api';
 import { ROLE_RANK } from '@/lib/types';
 import { CreateLinkForm } from '@/components/links/CreateLinkForm';
+import { BulkCreateForm } from '@/components/links/BulkCreateForm';
 import { LinkStatusBadge, VerdictBadge, Badge } from '@/components/Badge';
 import { CopyButton } from '@/components/CopyButton';
 import { ConfirmSubmit } from '@/components/ConfirmSubmit';
@@ -27,6 +28,19 @@ export default async function LinksPage() {
         <h2 id="create-h" style={{ marginBottom: 14 }}>Create a link</h2>
         <CreateLinkForm domains={domains} canWrite={canWrite} />
       </section>
+
+      {canWrite ? (
+        <section className="card" aria-labelledby="bulk-h">
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 650, minHeight: 44, display: 'flex', alignItems: 'center' }}>
+              <h2 id="bulk-h" style={{ fontSize: '1.25rem', margin: 0 }}>Bulk create</h2>
+            </summary>
+            <div style={{ marginTop: 14 }}>
+              <BulkCreateForm />
+            </div>
+          </details>
+        </section>
+      ) : null}
 
       <section className="stack" aria-labelledby="all-h">
         <h2 id="all-h">All links ({links.length})</h2>
