@@ -9,7 +9,12 @@ import { logoutAction } from '@/app/actions/auth';
 import { getWorkspaceId } from '@/lib/session';
 import { WorkspaceSwitcher } from '@/components/WorkspaceSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CommandPalette } from '@/components/CommandPalette';
 import type { Me } from '@/lib/types';
+
+// Soft display cap for the sidebar usage meter (Free tier). The authoritative
+// limit will come from the billing service; this is a UI affordance.
+const PLAN_CAP = 10000;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let me: Me;
@@ -19,6 +24,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (e instanceof ApiError && (e.status === 401 || e.status === 0)) redirect('/logout');
     throw e;
   }
+  const linkCount = await api.listLinks(100).then((l) => l.length).catch(() => 0);
+  const usagePct = Math.min(100, Math.round((linkCount / PLAN_CAP) * 100));
+
   const wsCookie = await getWorkspaceId();
   const selected = me.workspaces.find((w) => String(w.workspaceId) === wsCookie) ?? me.workspaces[0];
 
@@ -45,6 +53,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </>
             ) : null}
           </nav>
+
+          <div className="usage-meter" aria-label="Plan usage">
+            <div className="usage-top">
+              <span>Links used</span>
+              <span className="usage-count">{linkCount.toLocaleString()}{linkCount >= 100 ? '+' : ''} / {PLAN_CAP.toLocaleString()}</span>
+            </div>
+            <div className="usage-track" role="progressbar" aria-valuenow={usagePct} aria-valuemin={0} aria-valuemax={100}>
+              <span className="usage-fill" style={{ width: `${Math.max(usagePct, 2)}%` }} />
+            </div>
+          </div>
+
           <div className="sidebar-foot" aria-label="Product information">
             <Link href="/features">Features</Link>
             <Link href="/analytics">Analytics</Link>
@@ -61,6 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {selected ? <span className="muted nowrap">{selected.homeRegion.toUpperCase()} region</span> : null}
             </div>
             <div className="cluster">
+              <CommandPalette />
               <ThemeToggle />
               <span className="muted truncate" title={me.email}>{me.email}</span>
               <form action={logoutAction}>
