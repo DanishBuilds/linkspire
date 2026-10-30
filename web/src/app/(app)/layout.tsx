@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <NavLink href="/dashboard"><Icon.Dashboard className="ico" />Overview</NavLink>
             <NavLink href="/links"><Icon.Link className="ico" />Links</NavLink>
             <NavLink href="/domains"><Icon.Globe className="ico" />Domains</NavLink>
+            <NavLink href="/insights"><Icon.Chart className="ico" />Analytics</NavLink>
             <div className="nav-section" role="presentation">Developer</div>
             <NavLink href="/api-keys"><Icon.Key className="ico" />API keys</NavLink>
             <NavLink href="/webhooks"><Icon.Webhook className="ico" />Webhooks</NavLink>
