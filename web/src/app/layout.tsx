@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { headers } from 'next/headers';
 import { fontMono, fontSans } from '@/lib/fonts';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,12 +11,12 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="en" className={`${fontSans.variable} ${fontMono.variable}`} suppressHydrationWarning>
       <body className={fontSans.className}>
-        <Script src="/theme-init.js" strategy="beforeInteractive" />
-        {children}
+        <ThemeProvider nonce={nonce}>{children}</ThemeProvider>
       </body>
     </html>
   );
