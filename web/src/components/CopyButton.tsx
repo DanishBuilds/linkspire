@@ -2,9 +2,12 @@
 import { useState, useRef } from 'react';
 import { Icon } from './icons';
 
-// Copy-to-clipboard with an aria-live confirmation. Falls back to selecting a
-// hidden textarea where the async clipboard API is unavailable.
-export function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
+// Copy-to-clipboard with an aria-live confirmation. `compact` renders a square
+// icon-only button for use inside dense table cells. Falls back to a hidden
+// textarea where the async clipboard API is unavailable.
+export function CopyButton({
+  value, label = 'Copy', compact = false,
+}: { value: string; label?: string; compact?: boolean }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,6 +31,15 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
     setCopied(ok);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (compact) {
+    return (
+      <button type="button" className="icon-btn" onClick={copy} aria-label={copied ? 'Copied' : label} title={label}>
+        {copied ? <Icon.Check /> : <Icon.Copy />}
+        <span aria-live="polite" className="visually-hidden">{copied ? `${label} succeeded` : ''}</span>
+      </button>
+    );
   }
 
   return (

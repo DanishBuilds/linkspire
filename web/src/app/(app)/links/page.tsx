@@ -5,9 +5,10 @@ import { ROLE_RANK } from '@/lib/types';
 import { CreateLinkForm } from '@/components/links/CreateLinkForm';
 import { BulkCreateForm } from '@/components/links/BulkCreateForm';
 import { LinkStatusBadge, VerdictBadge, Badge } from '@/components/Badge';
-import { CopyButton } from '@/components/CopyButton';
 import { ConfirmSubmit } from '@/components/ConfirmSubmit';
+import { ShortLinkCell } from '@/components/ShortLinkCell';
 import { deleteLinkAction } from '@/app/actions/links';
+import { Icon } from '@/components/icons';
 import { fmtDate, isExpired } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Links' };
@@ -21,7 +22,10 @@ export default async function LinksPage() {
     <div className="stack">
       <div className="page-head">
         <h1>Links</h1>
-        <p>Create and manage short links. Destinations are scanned before a link is saved.</p>
+        <ol className="links-howto muted">
+          <li><strong>Create a link</strong> below. Optional password: expand “Password protection, expiry &amp; click limits”.</li>
+          <li><strong>Get a QR code:</strong> in the table, click the purple <strong>QR code</strong> button (or “Create QR code” right after you create a link).</li>
+        </ol>
       </div>
 
       <section className="card" aria-labelledby="create-h">
@@ -57,38 +61,43 @@ export default async function LinksPage() {
                   <th scope="col">Status</th>
                   <th scope="col">Scan</th>
                   <th scope="col">Redirect</th>
-                  <th scope="col">Expires</th>
                   <th scope="col">Created</th>
-                  {canWrite ? <th scope="col"><span className="visually-hidden">Actions</span></th> : null}
+                  <th scope="col" className="col-actions"><span className="visually-hidden">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
                 {links.map((l) => (
                   <tr key={`${l.domainId}:${l.code}`}>
-                    <td>
-                      <div className="cluster">
-                        <Link href={`/links/${l.domainId}/${encodeURIComponent(l.code)}`} className="mono">{l.code}</Link>
-                        <CopyButton value={l.shortUrl} label="Copy" />
-                      </div>
+                    <td><ShortLinkCell domainId={l.domainId} code={l.code} shortUrl={l.shortUrl} /></td>
+                    <td className="cell-dest">
+                      <a className="destlink" href={l.destination} target="_blank" rel="noopener noreferrer" title={l.destination}>{l.destination}</a>
                     </td>
-                    <td><span className="truncate" title={l.destination}>{l.destination}</span></td>
                     <td>
-                      <LinkStatusBadge status={l.status} />
-                      {isExpired(l.expiresAt) ? <> <Badge tone="bad">expired</Badge></> : null}
+                      <span className="badge-stack">
+                        <LinkStatusBadge status={l.status} />
+                        {l.passwordProtected ? <Badge tone="info">password</Badge> : null}
+                        {isExpired(l.expiresAt) ? <Badge tone="bad">expired</Badge> : null}
+                      </span>
                     </td>
                     <td><VerdictBadge verdict={l.scanVerdict} /></td>
                     <td className="nowrap">{l.redirectType}</td>
-                    <td className="nowrap muted">{fmtDate(l.expiresAt)}</td>
                     <td className="nowrap muted">{fmtDate(l.createdAt)}</td>
-                    {canWrite ? (
-                      <td>
-                        <form action={deleteLinkAction}>
-                          <input type="hidden" name="domain_id" value={l.domainId} />
-                          <input type="hidden" name="code" value={l.code} />
-                          <ConfirmSubmit confirm={`Delete link ${l.code}? This cannot be undone.`}>Delete</ConfirmSubmit>
-                        </form>
-                      </td>
-                    ) : null}
+                    <td className="col-actions">
+                      <span className="row-actions">
+                        <Link className="icon-btn" href={`/links/${l.domainId}/${encodeURIComponent(l.code)}#qr-code`} title="QR code" aria-label={`QR code for ${l.code}`}>
+                          <Icon.Qr />
+                        </Link>
+                        {canWrite ? (
+                          <form action={deleteLinkAction}>
+                            <input type="hidden" name="domain_id" value={l.domainId} />
+                            <input type="hidden" name="code" value={l.code} />
+                            <ConfirmSubmit confirm={`Delete link ${l.code}? This cannot be undone.`} className="icon-btn" pendingLabel="…">
+                              <Icon.Trash /><span className="visually-hidden">Delete {l.code}</span>
+                            </ConfirmSubmit>
+                          </form>
+                        ) : null}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

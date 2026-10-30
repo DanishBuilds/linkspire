@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import * as api from '@/lib/api';
 import { Icon } from '@/components/icons';
 import { LinkStatusBadge, VerdictBadge } from '@/components/Badge';
-import { CopyButton } from '@/components/CopyButton';
+import { StatCard } from '@/components/StatCard';
+import { ShortLinkCell } from '@/components/ShortLinkCell';
 import { fmtDate, fmtNumber } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Overview' };
@@ -26,16 +27,16 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid cols-4">
-        <div className="card stat"><span className="value">{fmtNumber(links.length)}</span><span className="label">Total links</span></div>
-        <div className="card stat"><span className="value">{fmtNumber(active)}</span><span className="label">Active</span></div>
-        <div className="card stat"><span className="value">{fmtNumber(flagged)}</span><span className="label">Flagged by scanner</span></div>
-        <div className="card stat"><span className="value">{fmtNumber(activeDomains)}</span><span className="label">Active domains</span></div>
+        <StatCard icon={<Icon.Link />} value={fmtNumber(links.length)} label="Total links" />
+        <StatCard icon={<Icon.Check />} value={fmtNumber(active)} label="Active" tone="ok" />
+        <StatCard icon={<Icon.Shield />} value={fmtNumber(flagged)} label="Flagged by scanner" tone={flagged ? 'bad' : 'accent'} />
+        <StatCard icon={<Icon.Globe />} value={fmtNumber(activeDomains)} label="Active domains" />
       </div>
 
       <section className="stack" aria-labelledby="recent-h">
-        <div className="spread">
+        <div className="section-bar">
           <h2 id="recent-h">Recent links</h2>
-          <Link href="/links">View all</Link>
+          <Link href="/links" className="link-more">View all →</Link>
         </div>
         {recent.length === 0 ? (
           <div className="card empty">
@@ -59,13 +60,10 @@ export default async function DashboardPage() {
               <tbody>
                 {recent.map((l) => (
                   <tr key={`${l.domainId}:${l.code}`}>
-                    <td>
-                      <div className="cluster">
-                        <Link href={`/links/${l.domainId}/${encodeURIComponent(l.code)}`} className="mono">{l.code}</Link>
-                        <CopyButton value={l.shortUrl} label="Copy" />
-                      </div>
+                    <td><ShortLinkCell domainId={l.domainId} code={l.code} shortUrl={l.shortUrl} /></td>
+                    <td className="cell-dest">
+                      <a className="destlink" href={l.destination} target="_blank" rel="noopener noreferrer" title={l.destination}>{l.destination}</a>
                     </td>
-                    <td><span className="truncate" title={l.destination}>{l.destination}</span></td>
                     <td><LinkStatusBadge status={l.status} /></td>
                     <td><VerdictBadge verdict={l.scanVerdict} /></td>
                     <td className="nowrap muted">{fmtDate(l.createdAt)}</td>
