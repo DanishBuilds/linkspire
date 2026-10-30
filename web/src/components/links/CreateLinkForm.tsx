@@ -1,9 +1,11 @@
 'use client';
+import Link from 'next/link';
 import { useActionState } from 'react';
 import { createLinkAction, type LinkFormState } from '@/app/actions/links';
 import { SubmitButton } from '@/components/SubmitButton';
 import { Alert } from '@/components/Alert';
 import { CopyButton } from '@/components/CopyButton';
+import { Icon } from '@/components/icons';
 import type { DomainRecord } from '@/lib/types';
 
 const initial: LinkFormState = {};
@@ -22,9 +24,27 @@ export function CreateLinkForm({ domains, canWrite }: { domains: DomainRecord[];
       {state.success ? (
         <Alert variant="success" title={state.success}>
           {state.shortUrl ? (
-            <div className="copy-row" style={{ marginTop: 8 }}>
-              <code className="code-block">{state.shortUrl}</code>
-              <CopyButton value={state.shortUrl} label="Copy link" />
+            <div className="stack" style={{ marginTop: 10, gap: 12 }}>
+              <div className="copy-row">
+                <code className="code-block">{state.shortUrl}</code>
+                <CopyButton value={state.shortUrl} label="Copy link" />
+              </div>
+              {state.code != null && state.domainId != null ? (
+                <div className="cluster">
+                  <Link
+                    href={`/links/${state.domainId}/${encodeURIComponent(state.code)}#qr-code`}
+                    className="btn"
+                  >
+                    <Icon.Qr /> Create QR code for this link
+                  </Link>
+                  <Link
+                    href={`/links/${state.domainId}/${encodeURIComponent(state.code)}`}
+                    className="btn secondary"
+                  >
+                    View link details
+                  </Link>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </Alert>
@@ -62,11 +82,18 @@ export function CreateLinkForm({ domains, canWrite }: { domains: DomainRecord[];
           placeholder="Optional — 3–64 chars; leave blank for an auto code" autoComplete="off" />
       </div>
 
-      <details>
-        <summary style={{ cursor: 'pointer', fontWeight: 600, minHeight: 44, display: 'flex', alignItems: 'center' }}>
-          Advanced options
+      <details className="disclosure">
+        <summary>
+          <span className="disclosure-main">
+            <span className="disclosure-ic" aria-hidden="true"><Icon.Settings /></span>
+            <span>
+              <span className="disclosure-title">More options</span>
+              <span className="disclosure-sub">Password, expiry date, click limit, custom title (all optional)</span>
+            </span>
+          </span>
+          <svg className="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
         </summary>
-        <div className="stack" style={{ marginTop: 12 }}>
+        <div className="disclosure-body stack">
           <div className="grid cols-2">
             <div className="field">
               <label htmlFor="password">Password protection</label>

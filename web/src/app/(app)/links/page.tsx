@@ -34,16 +34,21 @@ export default async function LinksPage() {
       </section>
 
       {canWrite ? (
-        <section className="card" aria-labelledby="bulk-h">
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 650, minHeight: 44, display: 'flex', alignItems: 'center' }}>
-              <h2 id="bulk-h" style={{ fontSize: '1.25rem', margin: 0 }}>Bulk create</h2>
-            </summary>
-            <div style={{ marginTop: 14 }}>
-              <BulkCreateForm />
-            </div>
-          </details>
-        </section>
+        <details className="disclosure">
+          <summary>
+            <span className="disclosure-main">
+              <span className="disclosure-ic" aria-hidden="true"><Icon.Plus /></span>
+              <span>
+                <span className="disclosure-title">Bulk create</span>
+                <span className="disclosure-sub">Paste many destination URLs at once (up to 100)</span>
+              </span>
+            </span>
+            <svg className="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+          <div className="disclosure-body">
+            <BulkCreateForm />
+          </div>
+        </details>
       ) : null}
 
       <section className="stack" aria-labelledby="all-h">
