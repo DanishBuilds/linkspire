@@ -20,6 +20,8 @@ x-app-env: &app-env
   PUBLIC_BASE_URL: "http://localhost:8080"
   DEFAULT_DOMAIN_ID: "1"
   DEFAULT_DOMAIN_HOST: "localhost:8080"
+  ASSET_DIR: "/var/linkspire/qr"
+  QR_ASSET_DIR: "/var/linkspire/qr"
 
 services:
   cockroach:
@@ -46,6 +48,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  redpanda-init:
+    image: redpandadata/redpanda:v24.2.7
+    depends_on:
+      redpanda: { condition: service_healthy }
+    entrypoint: ["/bin/bash", "/init/redpanda-init.sh"]
+    volumes:
+      - ./redpanda-init.sh:/init/redpanda-init.sh:ro
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    restart: "no"
 
   redpanda:
     image: redpandadata/redpanda:v24.2.7
@@ -74,6 +87,7 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ../../db/clickhouse/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./clickhouse-allow-docker.xml:/etc/clickhouse-server/users.d/allow-docker.xml:ro
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
@@ -117,6 +131,7 @@ services:
       cockroach: { condition: service_healthy }
       redis: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
+      redpanda-init: { condition: service_completed_successfully }
 
   api:
     build:
@@ -127,6 +142,8 @@ services:
       HTTP_ADDR: ":8081"
       METRICS_ADDR: ":9091"
       CLICKHOUSE_URL: "http://clickhouse:8123"
+    volumes:
+      - qr-assets:/var/linkspire/qr
     ports:
       - "8081:8081"
     depends_on:
@@ -141,6 +158,8 @@ services:
       <<: *app-env
       WORKER_ROLE: "all"
       METRICS_ADDR: ":9092"
+    volumes:
+      - qr-assets:/var/linkspire/qr
     depends_on:
       cockroach: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
@@ -162,3 +181,4 @@ services:
 volumes:
   cockroach-data:
   clickhouse-data:
+  qr-assets:

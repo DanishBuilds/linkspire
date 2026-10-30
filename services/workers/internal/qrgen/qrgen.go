@@ -41,7 +41,8 @@ func (w *Worker) Tick(ctx context.Context) {
 			w.Log.Warn("qr render", "id", q.ID, "err", err)
 			continue
 		}
-		_ = w.Store.QRSetKey(ctx, q.ID, path)
+		// Store a stable object key (basename), not the host filesystem path.
+		_ = w.Store.QRSetKey(ctx, q.ID, filepath.Base(path))
 	}
 }
 

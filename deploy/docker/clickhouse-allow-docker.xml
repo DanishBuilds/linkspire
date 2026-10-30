@@ -1,0 +1,11 @@
+<!-- Local Docker: allow HTTP queries from other containers on the compose network.
+     The stock ClickHouse 24.x image restricts default to 127.0.0.1 only. -->
+<clickhouse>
+  <users>
+    <default>
+      <networks replace="replace">
+        <ip>::/0</ip>
+      </networks>
+    </default>
+  </users>
+</clickhouse>

@@ -93,6 +93,15 @@ type QRRow struct {
 	CreatedAt time.Time
 }
 
+func (r *Repo) GetQR(ctx context.Context, domainID int64, code string, id int64) (QRRow, error) {
+	var q QRRow
+	err := r.Pool.QueryRow(ctx, `
+		SELECT id, format::text, ec_level, size, object_key, created_at
+		FROM qr_codes WHERE id=$1 AND domain_id=$2 AND code=$3`, id, domainID, code,
+	).Scan(&q.ID, &q.Format, &q.ECLevel, &q.Size, &q.ObjectKey, &q.CreatedAt)
+	return q, err
+}
+
 func (r *Repo) ListQR(ctx context.Context, domainID int64, code string) ([]QRRow, error) {
 	rows, err := r.Pool.Query(ctx, `
 		SELECT id, format::text, ec_level, size, object_key, created_at

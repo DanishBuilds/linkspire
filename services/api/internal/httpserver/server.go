@@ -98,6 +98,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("POST /v1/links/{domainId}/{code}/qr", s.authn(s.requireWS(s.requestQR)))
 	mux.HandleFunc("GET /v1/links/{domainId}/{code}/qr", s.authn(s.requireWS(s.listQR)))
+	mux.HandleFunc("GET /v1/links/{domainId}/{code}/qr/{qrId}/file", s.authn(s.requireWS(s.downloadQRFile)))
 	mux.HandleFunc("POST /v1/api-keys", s.authn(s.requireWS(s.createKey)))
 	mux.HandleFunc("GET /v1/api-keys", s.authn(s.requireWS(s.listKeys)))
 	mux.HandleFunc("DELETE /v1/api-keys/{id}", s.authn(s.requireWS(s.revokeKey)))

@@ -5,7 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -462,12 +465,12 @@ func (s *Server) listQR(w http.ResponseWriter, r *http.Request) {
 	base := strings.TrimRight(s.cfg.QRPublicBase, "/")
 	data := make([]any, 0, len(rows))
 	for _, q := range rows {
-		status := "queued"
+		status := "pending"
 		url := ""
-		if q.ObjectKey != nil && *q.ObjectKey != "" {
+		if q.ObjectKey != nil && strings.TrimSpace(*q.ObjectKey) != "" {
 			status = "ready"
 			if base != "" {
-				url = base + "/" + *q.ObjectKey
+				url = base + "/" + strings.TrimPrefix(*q.ObjectKey, "/")
 			}
 		}
 		data = append(data, map[string]any{
@@ -476,4 +479,45 @@ func (s *Server) listQR(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, 200, map[string]any{"data": data})
+}
+
+func (s *Server) downloadQRFile(w http.ResponseWriter, r *http.Request) {
+	p := PrincipalFrom(r)
+	did, _ := strconv.ParseInt(r.PathValue("domainId"), 10, 64)
+	code := r.PathValue("code")
+	qid, _ := strconv.ParseInt(r.PathValue("qrId"), 10, 64)
+	if _, err := s.repo.GetLink(r.Context(), p.WorkspaceID, did, code); err != nil {
+		problem.Write(w, problem.New(404, "Not found", "link", r.URL.Path))
+		return
+	}
+	q, err := s.repo.GetQR(r.Context(), did, code, qid)
+	if err != nil || q.ObjectKey == nil || strings.TrimSpace(*q.ObjectKey) == "" {
+		problem.Write(w, problem.New(404, "Not found", "qr asset", r.URL.Path))
+		return
+	}
+	if s.cfg.QRAssetDir == "" {
+		problem.Write(w, problem.New(503, "Unavailable", "QR asset storage is not configured on the API", r.URL.Path))
+		return
+	}
+	key := filepath.Base(strings.ReplaceAll(*q.ObjectKey, "\\", "/"))
+	path := filepath.Join(s.cfg.QRAssetDir, key)
+	cleanRoot := filepath.Clean(s.cfg.QRAssetDir)
+	cleanPath := filepath.Clean(path)
+	if !strings.HasPrefix(cleanPath, cleanRoot+string(filepath.Separator)) && cleanPath != cleanRoot {
+		problem.Write(w, problem.New(500, "Internal error", "invalid qr path", r.URL.Path))
+		return
+	}
+	f, err := os.Open(cleanPath)
+	if err != nil {
+		problem.Write(w, problem.New(404, "Not found", "qr file missing on disk", r.URL.Path))
+		return
+	}
+	defer f.Close()
+	ct := "image/png"
+	if q.Format == "svg" {
+		ct = "image/svg+xml"
+	}
+	w.Header().Set("Content-Type", ct)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.%s"`, code, q.Format))
+	http.ServeContent(w, r, key, q.CreatedAt, f)
 }

@@ -48,6 +48,7 @@ type Config struct {
 	WebAuthnRPName   string
 
 	QRPublicBase string
+	QRAssetDir   string // local QR files written by workers (basename keys in DB)
 
 	GSBFile       string
 	ClickHouseURL string
@@ -88,6 +89,7 @@ func Load() (*Config, error) {
 		WebAuthnRPOrigin:  getStr("WEBAUTHN_RP_ORIGIN", ""),
 		WebAuthnRPName:    getStr("WEBAUTHN_RP_NAME", "Linkspire"),
 		QRPublicBase:      getStr("QR_PUBLIC_BASE", ""),
+		QRAssetDir:        getStr("QR_ASSET_DIR", ""),
 		GSBFile:           getStr("GSB_PREFIX_FILE", ""),
 		ClickHouseURL:     getStr("CLICKHOUSE_URL", ""),
 		AskToken:          getStr("TLS_ASK_TOKEN", "dev-ask-token"),

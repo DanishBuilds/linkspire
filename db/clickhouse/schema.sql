@@ -76,7 +76,7 @@ SELECT
     referrer_domain,
     source,
     countState()                AS clicks,
-    uniqCombinedState(visitor_hash) AS unique_visitors
+    uniqCombinedState(12)(visitor_hash) AS unique_visitors
 FROM linkspire.clicks_raw
 GROUP BY event_date, domain_id, code, workspace_id, country_code,
          device_class, browser_family, os_family, referrer_domain, source;
@@ -87,7 +87,7 @@ SELECT
     event_date, domain_id, code, workspace_id, country_code, device_class,
     browser_family, os_family, referrer_domain, source,
     countMerge(clicks)                 AS clicks,
-    uniqCombinedMerge(unique_visitors) AS unique_visitors
+    uniqCombinedMerge(12)(unique_visitors) AS unique_visitors
 FROM linkspire.clicks_daily
 GROUP BY event_date, domain_id, code, workspace_id, country_code, device_class,
          browser_family, os_family, referrer_domain, source;

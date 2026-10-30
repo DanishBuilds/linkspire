@@ -2,6 +2,12 @@
 *.log
 .env
 .env.*
+!.env.example
+!**/.env.example
+!**/env.*.example
+deploy/hybrid/tunnel-*.log
+deploy/hybrid/tunnels.current.json
+deploy/docker/.env
 dist/
 bin/
 logs_*.txt

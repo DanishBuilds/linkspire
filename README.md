@@ -56,7 +56,7 @@ flowchart LR
 2. **L1 in-process cache** → on miss, **Redis** → on miss, **CockroachDB** (read path).
 3. **Singleflight** collapses stampedes on the same cold key.
 4. Optional **Bloom filter** (when pre-populated) rejects unknown codes without hitting DB.
-5. Response: **302/301** (or password interstitial, 410 gone, 503 if DB unavailable).
+5. Response depends on link **state** and **redirect type** (see [Redirect types & click behavior](#redirect-types--click-behavior)): HTTP redirect (301/302/307/308), password interstitial, malware **warning page** (no automatic redirect), **410 Gone** (expired, click limit, disabled), or **503** if the database is unavailable.
 6. **Analytics**: a click event is published to **Redpanda** asynchronously. If the broker is down, analytics may drop; **redirects still succeed**.
 
 **Rule:** no synchronous call to external scanners, geo APIs, or ClickHouse on this path.
@@ -78,6 +78,70 @@ flowchart LR
 - Geo, device, browser, referrer are derived **in memory** on the redirect path; **IPs are not written** to analytics storage.
 - **Daily unique** visitors use a **salt that rotates and is destroyed** (no cross-day tracking).
 - Raw events land in **ClickHouse** with TTLs; aggregates roll up and age out (see `db/clickhouse/` and [`docs/architecture/05-data-layer.md`](docs/architecture/05-data-layer.md)).
+
+---
+
+## Dashboard & link features
+
+The **web** app (`http://localhost:3000` locally) is both marketing site and signed-in control plane. Main routes: `/links`, `/links/{domainId}/{code}`, `/domains`, `/api-keys`, `/webhooks`, `/settings`, `/dashboard`, plus public pages `/features`, `/privacy`, `/analytics`, `/developers` and `/report-abuse`.
+
+### Creating a link (`/links`)
+
+| Field | What it does |
+|-------|----------------|
+| **Destination URL** | Required `http(s)` target. Destinations are scanned; malicious URLs must not get a durable row. |
+| **Domain** | Optional custom domain (must be verified under **Domains**). Otherwise the platform short host is used. |
+| **Custom alias** | Optional slug (3–64 chars). Leave blank for an auto **7-character Base62** code (non-sequential). |
+| **Redirect type** | HTTP status used when the link is **active** and not blocked by password or safety interstitials — see below. |
+| **Password** (under *More options*) | Visitors see a CSRF-protected prompt; unlock uses Argon2id verification and a short-lived signed cookie scoped to that link. |
+| **Expires at** | After expiry, clicks return **410 Gone** (no redirect). |
+| **Click limit** | After the limit, clicks return **410 Gone**. |
+| **Title** | Optional display metadata (can override scraped preview text in the UI). |
+
+**Bulk create:** up to **100 links** in one request via `POST /v1/links/bulk` (API; same fields per row). See [`services/api/openapi.yaml`](services/api/openapi.yaml).
+
+**QR codes:** not on the create form itself. After creating a link, use **Create QR code** on the success banner, **QR code** on the links table, or open link details → **QR code** section → **Generate**. A worker renders PNG/SVG asynchronously; **Download** appears when status is `ready` (regenerate after deploy if an old row points at a missing file).
+
+### Redirect types & click behavior
+
+When someone opens a short URL, the **redirect service** (`services/redirect`) resolves the code and branches on **effective status** first, then on **redirect type** for normal redirects.
+
+**Link state (what the visitor sees)**
+
+| State | Behavior |
+|-------|----------|
+| **Active** | Redirect to destination with the link’s HTTP status (below). |
+| **Password protected** | HTML prompt; no `Location` until the password is accepted. |
+| **Flagged malicious** | Warning **interstitial** — user must choose to continue; not a silent auto-redirect. |
+| **Expired / click limit / disabled** | **410 Gone**. |
+| **Unknown code** | **404**. |
+
+**Redirect type dropdown** (stored per link as `redirect_type`; default **302**). All options send the browser to the **same destination URL**; they differ in caching, analytics, SEO, and HTTP method rules ([ADR-004](docs/architecture/03-adr.md)).
+
+| Code | Semantics | Caching on redirect response | Analytics & live updates | Typical use |
+|------|-----------|------------------------------|---------------------------|-------------|
+| **302** — Found | Temporary redirect | `Cache-Control: no-store` — browsers usually **do not** cache the hop | **Each click** tends to hit Linkspire → clicks counted; expiry, disable, and flag changes apply on the next visit | **Default.** Campaign links, anything you may edit or need accurate stats for. |
+| **301** — Moved Permanently | Permanent redirect | `Cache-Control: public, max-age=…` — browsers/CDNs **may cache** | Repeat visitors may **skip the origin** → **under-counted** clicks; destination changes may not apply until cache expires | Stable “this short URL always means that URL”; better **SEO link equity** to the destination. |
+| **307** — Temporary Redirect | Temporary, **method preserved** (e.g. POST stays POST) | Same as 302: **no-store** | Same as 302 | Rare for browser link clicks (usually GET); for APIs or non-GET flows that must preserve method. |
+| **308** — Permanent Redirect | Permanent, **method preserved** | Same as 301: **cacheable** | Same tradeoffs as 301 | Permanent + method-preserving (uncommon for simple short links). |
+
+**Practical rule:** use **302** (or **307** if you need method preservation) when analytics and up-to-date link policy matter; use **301** or **308** only when you accept caching and possible under-counting in exchange for permanent semantics and SEO.
+
+Implementation reference: `services/redirect/internal/handler/handler.go` (`doRedirect` sets status, `Cache-Control`, and `Location`).
+
+### Auth, workspace, and integrations
+
+| Area | Capability |
+|------|------------|
+| **Sign-in** | Email/password; optional **TOTP** on login. **WebAuthn passkeys** and **OIDC SSO** when the API is configured (`WEBAUTHN_*`, `OIDC_*` env vars — otherwise endpoints return not configured). |
+| **Session** | JWT stored in an **httpOnly** cookie via Next.js server actions; the browser never holds the raw token. |
+| **RBAC** | Workspace roles gate create/edit vs read-only (e.g. members who cannot create links). |
+| **API keys** | Scoped keys for automation; secret shown once at creation. |
+| **Webhooks** | Signed HTTPS callbacks (e.g. link created, flagged, domain verified). |
+| **Privacy settings** | DSAR requests and CCPA/CPRA “Do Not Sell or Share” preference ([`docs/compliance/`](docs/compliance/)). |
+| **Abuse** | Public `/report-abuse`; workspace **Admin → Abuse** queue when enabled. |
+
+Analytics in the dashboard are **daily aggregates only** (no per-visitor IP/UA drill-down). If ClickHouse is not wired locally, the analytics views degrade gracefully with an explicit notice.
 
 ---
 
@@ -150,6 +214,8 @@ docker compose -f deploy/docker/compose.yaml up -d --no-deps --force-recreate we
 ```
 
 For fast frontend iteration: `cd web && npm run dev` (stop the `web` container if port 3000 conflicts).
+
+**Hybrid (Vercel + laptop backend):** dashboard on Vercel, API/redirect/workers in Docker on your PC with HTTPS tunnels — see [`deploy/hybrid/README.md`](deploy/hybrid/README.md).
 
 **Dev secrets** in Compose are placeholders (`TOKEN_SIGNING_KEY`, `FEISTEL_KEY`, etc.) — override for any shared environment.
 

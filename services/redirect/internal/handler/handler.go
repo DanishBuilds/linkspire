@@ -234,7 +234,7 @@ func (h *Handler) emitClick(r *http.Request, link model.Link, statusServed uint1
 		bot = 1
 	}
 	h.d.Emitter.Emit(events.ClickEvent{
-		EventTime:      time.Now().Unix(),
+		EventTime:      time.Now().UTC().Format("2006-01-02 15:04:05"),
 		DomainID:       link.DomainID,
 		Code:           link.Code,
 		WorkspaceID:    link.WorkspaceID,

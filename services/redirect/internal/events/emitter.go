@@ -14,7 +14,7 @@ import (
 // ClickEvent is the privacy-safe analytics record. JSON field names match the ClickHouse
 // JSONEachRow columns (db/clickhouse/schema.sql). It contains NO IP and NO user-agent.
 type ClickEvent struct {
-	EventTime      int64  `json:"event_time"` // unix seconds
+	EventTime      string `json:"event_time"` // UTC, ClickHouse DateTime (JSONEachRow)
 	DomainID       int64  `json:"domain_id"`
 	Code           string `json:"code"`
 	WorkspaceID    int64  `json:"workspace_id"`

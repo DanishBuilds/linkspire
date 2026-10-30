@@ -22,7 +22,7 @@ export function QrForm({ link }: { link: Link }) {
           <div className="checkbox"><input id="qr-svg" type="radio" name="format" value="svg" /><label htmlFor="qr-svg" style={{ fontWeight: 400 }}>SVG</label></div>
         </div>
       </fieldset>
-      <div><SubmitButton className="btn secondary" pendingLabel="Queuing…">Generate QR code</SubmitButton></div>
+      <div><SubmitButton className="btn" pendingLabel="Queuing…">Generate QR code (PNG or SVG)</SubmitButton></div>
     </form>
   );
 }
