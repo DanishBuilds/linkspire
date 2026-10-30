@@ -16,10 +16,14 @@ Set-Location (Join-Path $Root "web")
 vercel whoami | Out-Null
 
 function Set-VercelEnv($name, $value) {
-  $value | vercel env add $name production --force 2>$null
+  $v = ($value -replace '\s+', '').Trim()
+  $tmp = Join-Path $env:TEMP "vercel-env-$name.txt"
+  [System.IO.File]::WriteAllText($tmp, $v)
+  Get-Content -Path $tmp -Raw | vercel env add $name production --force 2>$null
   if ($LASTEXITCODE -ne 0) {
-    $value | vercel env add $name production
+    Get-Content -Path $tmp -Raw | vercel env add $name production
   }
+  Remove-Item $tmp -Force -ErrorAction SilentlyContinue
 }
 
 Set-VercelEnv "LINKSPIRE_API_URL" $apiUrl

@@ -28,6 +28,12 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     await setSession(res.token);
   } catch (e) {
     if (e instanceof ApiError) {
+      if (e.status === 0) {
+        return {
+          error: 'Cannot reach the API on your laptop. Keep Docker and cloudflared running, then refresh this page.',
+          email,
+        };
+      }
       if (e.detail.toLowerCase().includes('totp')) {
         return { error: 'Enter the 6-digit code from your authenticator app.', needsTotp: true, email };
       }

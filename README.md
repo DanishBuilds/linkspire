@@ -4,6 +4,23 @@
 
 Design targets (production intent): **~100M redirects/day**, **50k req/s** burst, redirect **p99 &lt; 30 ms** at origin, **99.99%** redirect availability, **RPO = 0** for committed link rows.
 
+### Quick start
+
+| Goal | Guide |
+|------|--------|
+| **Run everything locally (Docker)** | [docs/GETTING_STARTED.md — Option A](docs/GETTING_STARTED.md#option-a--everything-local-simplest) |
+| **Vercel dashboard + backend on your laptop** | [docs/GETTING_STARTED.md — Option B](docs/GETTING_STARTED.md#option-b--hybrid-vercel-dashboard--laptop-backend) |
+| **After reboot / new tunnel URLs** | Re-run `deploy/scripts/hybrid-backend.ps1` → `hybrid-tunnels-start.ps1` → `hybrid-vercel-deploy.ps1` |
+
+```powershell
+git clone https://github.com/DanishBuilds/linkspire.git
+cd linkspire
+docker compose -f deploy/docker/compose.yaml up --build -d
+# → http://localhost:3000
+```
+
+Full prerequisites, env files, and troubleshooting: **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
+
 ---
 
 ## How the system works

@@ -12,9 +12,27 @@ Click short link → https://lnk-tunnel…/code      (redirect)
               └─ tunnel → laptop :8080 → destination
 ```
 
+## Automated flow (Windows)
+
+From the **repo root**, after each reboot or tunnel restart:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/hybrid-backend.ps1
+powershell -ExecutionPolicy Bypass -File deploy/scripts/hybrid-tunnels-start.ps1
+powershell -ExecutionPolicy Bypass -File deploy/scripts/hybrid-vercel-deploy.ps1
+```
+
+See also **[docs/GETTING_STARTED.md](../../docs/GETTING_STARTED.md)** (Option B).
+
 ## 1. Start backend on the laptop
 
 From the **repo root**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/hybrid-backend.ps1
+```
+
+Or manually:
 
 ```powershell
 copy deploy\docker\env.hybrid.example deploy\docker\.env
