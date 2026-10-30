@@ -111,6 +111,7 @@ export interface AnalyticsRow {
 
 export interface AnalyticsResult {
   configured: boolean;
+  status: 'ok' | 'unconfigured' | 'error';
   rows: AnalyticsRow[];
   note?: string;
   privacy?: string;

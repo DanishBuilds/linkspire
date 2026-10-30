@@ -81,12 +81,27 @@ export default async function LinkDetailPage({ params }: { params: Promise<{ dom
 
       <section className="stack" id="link-analytics" aria-labelledby="an-h">
         <h2 id="an-h">Analytics</h2>
-        {!analytics.configured ? (
-          <Alert variant="info" title="Aggregated analytics are not available in this environment">
-            {analytics.note || 'The analytics store (ClickHouse) is not configured.'} No raw IP or user-agent is ever stored; unique visitors are counted per day only (the salt rotates daily by design).
+        {analytics.status === 'unconfigured' ? (
+          <Alert variant="info" title="Analytics store is not configured">
+            Aggregates need the analytics store running. Start ClickHouse and Redpanda and set
+            {' '}<span className="mono">CLICKHOUSE_URL</span> on the API service (the docker compose stack wires
+            this up automatically). No raw IP or user-agent is ever stored; unique visitors are per-day only.
+          </Alert>
+        ) : analytics.status === 'error' ? (
+          <Alert variant="warning" title="Analytics backend is not reachable right now">
+            The API could not read ClickHouse. Check that ClickHouse is running and reachable from the API,
+            then refresh. {analytics.note}
           </Alert>
         ) : daily.length === 0 ? (
-          <div className="card empty"><h3>No clicks yet</h3><p>Analytics will appear once this link receives traffic.</p></div>
+          <div className="card empty">
+            <h3>No clicks recorded yet</h3>
+            <p>Analytics appear only after someone opens the short link through the redirect service.</p>
+            <p className="muted" style={{ marginTop: 10 }}>
+              To generate a data point, open <span className="mono">{link.shortUrl}</span> in a browser, then refresh
+              this page after a few seconds. Creating, copying, or viewing a link does not count as a click, and
+              events are processed asynchronously (redirect → stream → analytics store).
+            </p>
+          </div>
         ) : (
           <>
             <div className="grid cols-3">

@@ -281,10 +281,16 @@ export async function analytics(domainId: number, code: string): Promise<Analyti
     referrerDomain: asStr(pick(o, 'referrer_domain')) || undefined,
     source: asStr(pick(o, 'source')) || undefined,
   }));
+  const note = r?.note ? asStr(r.note) : undefined;
+  const low = (note ?? '').toLowerCase();
+  let status: AnalyticsResult['status'] = 'ok';
+  if (low.includes('not configured')) status = 'unconfigured';
+  else if (low.includes('unavailable')) status = 'error';
   return {
-    configured: !(r && r.note && String(r.note).includes('not configured')),
+    configured: status !== 'unconfigured',
+    status,
     rows,
-    note: r?.note ? asStr(r.note) : undefined,
+    note,
     privacy: r?.privacy ? asStr(r.privacy) : undefined,
   };
 }
@@ -358,15 +364,24 @@ export async function reportAbuse(shortUrl: string, reason: string): Promise<voi
 /* ---------- QR assets ---------- */
 export async function listQR(domainId: number, code: string): Promise<QrAsset[]> {
   const r = await request(`/v1/links/${domainId}/${encodeURIComponent(code)}/qr`);
-  return listOf(r).map((o: R) => ({
-    id: asNum(pick(o, 'id')),
-    format: asStr(pick(o, 'format')),
-    ecLevel: asStr(pick(o, 'ec_level')),
-    size: asNum(pick(o, 'size')),
-    status: asStr(pick(o, 'status')),
-    url: asStr(pick(o, 'url')),
-    createdAt: asStr(pick(o, 'created_at')),
-  }));
+  const enc = encodeURIComponent(code);
+  return listOf(r).map((o: R) => {
+    const id = asNum(pick(o, 'id'));
+    const status = asStr(pick(o, 'status'));
+    const backendUrl = asStr(pick(o, 'url'));
+    const url = status === 'ready'
+      ? (backendUrl || `/api/links/${domainId}/${enc}/qr/${id}`)
+      : '';
+    return {
+      id,
+      format: asStr(pick(o, 'format')),
+      ecLevel: asStr(pick(o, 'ec_level')),
+      size: asNum(pick(o, 'size')),
+      status,
+      url,
+      createdAt: asStr(pick(o, 'created_at')),
+    };
+  });
 }
 
 /* ---------- admin abuse queue ---------- */
